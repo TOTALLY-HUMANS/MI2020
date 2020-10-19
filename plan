@@ -1,0 +1,7 @@
+game_state = [robot1_loc, robot2_loc, robot3_loc, robot4_loc, minus_balls_locs, plus_balls_locs, own_score, enemy_score, time_left]
+
+robot_movement_state=[forward/backward/clockwise/counter-clockwise/stop]
+
+
+two identical robots that has identical control logic. These are controlled by higher logic that
+inspects game_state and tracks actions of both robots.
