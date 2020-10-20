@@ -4,7 +4,6 @@ Example script to detect objects by color from an image using OpenCV.
 import numpy as np
 import cv2
 from utils.ecore_utils import image_to_center_points
-from utils.select_video_source import select_video_source
 
 
 # Select the camera source by setting this
@@ -36,36 +35,22 @@ def print_core_positions(pos_ecore_positions, neg_ecore_positions):
     print('=== Done\n')
 
 
-def main():
-    """
-    Get an image from the chosen video source and then detect the energy
-    cores from the image. Finally print the coordinates of the found
-    energy cores.
-    """
-    capture = cv2.VideoCapture("http://localhost:8080")
+def get_core_positions(capture):
+    ret, frame = capture.read()
+    if frame is None:
+        return None
 
-    while True:
-        # Capture stream frame by frame
-        ret, frame = capture.read()
-        if frame is None:
-            continue
-
-        cv2.imshow('frame', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-        pos_ecore_positions = image_to_center_points(
-            frame,
-            POS_ECORE_LOW_COLOR,
-            POS_ECORE_HIGH_COLOR,
-            'Positive Energy Cores')
-        neg_ecore_positions = image_to_center_points(
-            frame,
-            NEG_ECORE_LOW_COLOR,
-            NEG_ECORE_HIGH_COLOR,
-            'Negative Energy Cores')
-        print_core_positions(pos_ecore_positions, neg_ecore_positions)
-
-
-if __name__ == '__main__':
-    main()
+    pos_ecore_positions = image_to_center_points(
+        frame,
+        POS_ECORE_LOW_COLOR,
+        POS_ECORE_HIGH_COLOR,
+        'Positive Energy Cores')
+    neg_ecore_positions = image_to_center_points(
+        frame,
+        NEG_ECORE_LOW_COLOR,
+        NEG_ECORE_HIGH_COLOR,
+        'Negative Energy Cores')
+    
+    
+    #print_core_positions(pos_ecore_positions, neg_ecore_positions)
+    return pos_ecore_positions, neg_ecore_positions

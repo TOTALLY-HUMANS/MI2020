@@ -47,48 +47,34 @@ def print_transforms(transforms):
               f'Rotation: {rotation[0]:.2f} Degrees\n')
 
 
-def main():
-    """
-    Get an image from the chosen video source and then detect the robots
-    from the image. Finally print the coordinates of the found robots.
-    """
-    capture = cv2.VideoCapture("http://localhost:8080")
+def get_robot_positions(capture):
+    ret, frame = capture.read()
+    if frame is None:
+        return None
 
-    while True:
-        # Capture stream frame by frame
-        ret, frame = capture.read()
-        if frame is None:
-            continue
+    corners, detected_ids, rejected_img_points = \
+        aruco.detectMarkers(frame,
+                            ARUCO_DICT,
+                            parameters=ARUCO_DETECTER_PARAMETERS)
 
-        corners, detected_ids, rejected_img_points = \
-            aruco.detectMarkers(frame,
-                                ARUCO_DICT,
-                                parameters=ARUCO_DETECTER_PARAMETERS)
+    rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners,
+                                                        SIZE_OF_MARKER,
+                                                        MTX,
+                                                        DIST)
 
-        rvecs, tvecs, _ = aruco.estimatePoseSingleMarkers(corners,
-                                                          SIZE_OF_MARKER,
-                                                          MTX,
-                                                          DIST)
+    if tvecs is not None and rvecs is not None:
+        imaxis = aruco.drawDetectedMarkers(frame, corners, detected_ids)
+        for i, _ in enumerate(tvecs):
+            aruco.drawAxis(imaxis,
+                            MTX,
+                            DIST,
+                            rvecs[i],
+                            tvecs[i],
+                            SIZE_OF_MARKER)
+        transforms = aruco_poses_to_transforms(detected_ids=detected_ids,
+                                                corners=corners,
+                                                rvecs=rvecs)
+        #print_transforms(transforms)
 
-        if tvecs is not None and rvecs is not None:
-            imaxis = aruco.drawDetectedMarkers(frame, corners, detected_ids)
-            for i, _ in enumerate(tvecs):
-                aruco.drawAxis(imaxis,
-                               MTX,
-                               DIST,
-                               rvecs[i],
-                               tvecs[i],
-                               SIZE_OF_MARKER)
-            cv2.imshow('frame', imaxis)
-            transforms = aruco_poses_to_transforms(detected_ids=detected_ids,
-                                                   corners=corners,
-                                                   rvecs=rvecs)
-            print_transforms(transforms)
-        else:
-            cv2.imshow('frame', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-
-if __name__ == '__main__':
-    main()
+        return transforms
+    return None

@@ -26,8 +26,8 @@ def image_to_center_points(
 
     # Show ball mask to see in detail the ball detection
     if debug_name:
-        cv2.imshow(f'{debug_name}_mask', ecore_mask)
-        cv2.imshow(f'{debug_name}_image', ecore_image)
+        #cv2.imshow(f'{debug_name}_mask', ecore_mask)
+        #cv2.imshow(f'{debug_name}_image', ecore_image)
         cv2.waitKey(1)
 
     return ecore_coordinates
