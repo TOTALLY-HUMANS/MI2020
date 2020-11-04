@@ -102,6 +102,8 @@ def point2robotframe(point, robot_pose):
     
     point_in_robot_frame = np.transpose(R)*np.transpose(np.matrix(point) - robot_position)
     point_in_robot_frame[1] =  point_in_robot_frame[1] * -1
+
+    print(point_in_robot_frame)
     return point_in_robot_frame
 
 #angle to point in robot frame
@@ -115,20 +117,17 @@ def get_dist_to_point(point):
 #veeeery simple pure pursuit, drives to point in map coordinate
 def drive_to_point(goal_point, my_pose, robot_handle):
         goal_in_robot_frame = point2robotframe(goal_point ,my_pose )
-        
         angle = get_angle_to_point(goal_in_robot_frame) 
         dist = get_dist_to_point(goal_in_robot_frame)
-        print('angle: ',angle )
-        if (abs(angle) > 0.1):
-          print("turn l")
-          robot_handle.left(0.3)
-        elif (abs(angle) < 0.1):
-          print("turn r")
-          robot_handle.right(0.3)
+
+        if angle > 0.2:
+            robot_handle.left(0.3)
+        elif angle < -0.2:
+            robot_handle.right(0.3)
         else:
-          print("forward")
-          robot_handle.forward(0.1)
+            robot_handle.forward(0.3)
         
+        print('angle: ', angle)
         print("dist: " , dist)
 
 if __name__ == '__main__':
