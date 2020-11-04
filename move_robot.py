@@ -15,9 +15,6 @@ CONFIG_PORT = 3000
 ROBOT_PORT_1 = 3001
 ROBOT_PORT_2 = 3002
 
-GOAL_1 = [1080, 0]
-GOAL_2 = [0, 1080]
-
 
 class Robot:
     def __init__(self, sock, ip, port, name):
@@ -54,6 +51,19 @@ class Robot:
         left, right = 0, 0
         self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
 
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def to_s(self):
+        return "X: "+str(self.x)+", Y: "+str(self.y)
+
+    def to_a(self):
+        return [self.x, self.y]
+
+GOAL_1 = Point(1080, 0)
+GOAL_2 = Point(0, 1080)
 
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -75,10 +85,39 @@ def main():
 
 
     for i in range(50000):
-        #print(get_core_positions(capture))
+        #print("A", get_core_positions(capture)[0])
         #print(get_robot_positions(capture))
-        drive_to_point([GOAL_1], get_robot_positions(capture)[2], r1)
-        drive_to_point([GOAL_2], get_robot_positions(capture)[3], r2)
+        try:
+            r_1_pos = get_robot_positions(capture)[2]
+            r_1_point = Point(r_1_pos['position'][0], r_1_pos['position'][1])
+            r_1_angle = r_1_pos['rotation']
+
+
+            r_2_pos = get_robot_positions(capture)[3]
+            r_2_point = Point(r_2_pos['position'][0], r_2_pos['position'][1])
+            r_2_angle = r_2_pos['rotation']
+
+            r_1_goal_point, dist_1 = closest_ball_coords(r_1_point, r_1_angle, get_core_positions(capture)[0])
+            r_2_goal_point, dist_2 = closest_ball_coords(r_2_point, r_2_angle, get_core_positions(capture)[0])
+
+            if dist_1 < 120:
+                drive_to_point(GOAL_1, r_1_angle, r_1_point, r1)
+            else:
+                drive_to_point(r_1_goal_point, r_1_angle, r_1_point, r1)
+
+            if dist_2 < 120:
+                drive_to_point(GOAL_1, r_2_angle, r_2_point, r2)
+            else:
+                drive_to_point(r_2_goal_point, r_2_angle, r_2_point, r2)
+
+
+
+
+            time.sleep(0.1)
+        except IndexError as e:
+            print("skipped", e)
+        except KeyError as ke:
+            print("skipped", ke)
 
     r1.stop()
     r2.stop()
@@ -95,40 +134,57 @@ def reset(sock):
 
 
 #transforms point to robot coordinate frame. in robot frame positive x is forward and positive y is to left
-def point2robotframe(point, robot_pose):
-    yaw = (robot_pose['rotation'] - 90.0)* math.pi/180.0 
-    robot_position = robot_pose['position']
+def point2robotframe(point, robot_pose, rotation):
+    yaw = (rotation - 90.0)* math.pi/180.0 
+    robot_position = robot_pose.to_a()
     R = np.matrix([[math.cos(yaw) , -math.sin(yaw) ],[math.sin(yaw), math.cos(yaw)]])
     
-    point_in_robot_frame = np.transpose(R)*np.transpose(np.matrix(point) - robot_position)
+    point_in_robot_frame = np.transpose(R)*np.transpose(np.matrix(point.to_a()) - robot_position)
     point_in_robot_frame[1] =  point_in_robot_frame[1] * -1
 
-    print(point_in_robot_frame)
-    return point_in_robot_frame
+    return Point(point_in_robot_frame[0], point_in_robot_frame[1])
 
 #angle to point in robot frame
 def get_angle_to_point(point):
-    return math.atan2(point[1], point[0])
+    return math.atan2(point.y, point.x)
 
 #dist to point in robot frame
 def get_dist_to_point(point):
-    return math.sqrt(point[0]**2 + point[1]**2)
+    return math.sqrt(point.x**2 + point.y**2)
+
+def closest_ball_coords(robot_pos, robot_angle, ball_coords):
+    closest_ball_point = Point(ball_coords[0][0], ball_coords[0][1])
+    _, closest_dist = get_angle_dist_to_point(closest_ball_point, robot_pos, robot_angle)
+    for coord in ball_coords:
+        point = Point(coord[0], coord[1])
+        _, dist = get_angle_dist_to_point(point, robot_pos, robot_angle)
+        if dist < closest_dist:
+            closest_dist = dist
+            closest_ball_point = point
+        
+    #print("CLOSEST", closest_ball_point.to_s(), "DIST:", closest_dist)
+    return closest_ball_point, closest_dist
+
+
+def get_angle_dist_to_point(goal_point, my_pose, robot_angle):
+    goal_in_robot_frame = point2robotframe(goal_point, my_pose, robot_angle)
+    angle = get_angle_to_point(goal_in_robot_frame)
+    dist = get_dist_to_point(goal_in_robot_frame)
+    return angle, dist
 
 #veeeery simple pure pursuit, drives to point in map coordinate
-def drive_to_point(goal_point, my_pose, robot_handle):
-        goal_in_robot_frame = point2robotframe(goal_point ,my_pose )
-        angle = get_angle_to_point(goal_in_robot_frame) 
-        dist = get_dist_to_point(goal_in_robot_frame)
+def drive_to_point(goal_point, robot_angle, my_pose, robot_handle):
+    angle, dist = get_angle_dist_to_point(goal_point, my_pose, robot_angle)
 
-        if angle > 0.2:
-            robot_handle.left(0.3)
-        elif angle < -0.2:
-            robot_handle.right(0.3)
-        else:
-            robot_handle.forward(0.3)
-        
-        print('angle: ', angle)
-        print("dist: " , dist)
+    if angle > 0.25:
+        robot_handle.left(0.2)
+    elif angle < -0.25:
+        robot_handle.right(0.2)
+    else:
+        robot_handle.forward(0.15)
+    
+    print('angle: ', angle)
+    print('dist: ' , dist)
 
 if __name__ == '__main__':
     main()

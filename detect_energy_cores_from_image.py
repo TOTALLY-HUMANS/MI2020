@@ -54,3 +54,13 @@ def get_core_positions(capture):
     
     #print_core_positions(pos_ecore_positions, neg_ecore_positions)
     return pos_ecore_positions, neg_ecore_positions
+
+def remove_finished_cores(pos_ecore_positions, neg_ecore_positions):
+    # configure goals globally?
+    # GOAL1_AREA = x, y esim 4900, 4900
+    # GOAL2_AREA = x, y esim 100, 100
+
+    # filter all neg and pos ecores if in goal
+
+    #return pos_ecore_positions, neg_ecore_positions
+    pass
