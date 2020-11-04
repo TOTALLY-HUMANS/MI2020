@@ -59,7 +59,7 @@ def find_center_points(color_mask, min_ball_area_to_detect):
     for contour in contours:
         # Uncomment the below print to see the right
         # value for min_ball_area_to_detect
-        # print("Ball area detected: {}".format(cv2.contourArea(contour)))
+        #print("Ball area detected: {}".format(cv2.contourArea(contour)))
         if cv2.contourArea(contour) < min_ball_area_to_detect:
             continue
 

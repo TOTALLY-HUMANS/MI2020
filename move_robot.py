@@ -2,6 +2,8 @@ import socket
 import time
 import random
 import cv2
+import numpy as np
+import math
 
 from detect_aruco_markers_from_image import get_robot_positions
 from detect_energy_cores_from_image import get_core_positions
@@ -54,6 +56,12 @@ def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     reset(sock)
     capture = cv2.VideoCapture("http://localhost:8080")
+    capture.set(cv2.CAP_PROP_BUFFERSIZE, 2)
+
+    width = capture.get(cv2.CAP_PROP_FRAME_WIDTH)
+    height = capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+    print(width, height)
 
 
     r1 = Robot(sock, IP, ROBOT_PORT_1, "R2D2")
@@ -63,12 +71,12 @@ def main():
     r2_moves = [r2.left, r2.right, r2.forward, r2.back]
 
 
-    for i in range(500000):
-        #print(get_core_positions(capture))
+    for i in range(50000):
+        print(get_core_positions(capture))
         #print(get_robot_positions(capture))
-        make_random_move(r1_moves)
-        make_random_move(r2_moves)
-        #time.sleep(0.0001)
+        #make_random_move(r1_moves)
+        #make_random_move(r2_moves)
+        drive_to_point(get_robot_positions(capture)[1]['position'], get_robot_positions(capture)[2], r1)
 
     r1.stop()
     r2.stop()
@@ -83,6 +91,40 @@ def make_random_move(moves):
 def reset(sock):
     sock.sendto(bytes("reset", "utf-8"), (IP, CONFIG_PORT))
 
+
+#transforms point to robot coordinate frame. in robot frame positive x is forward and positive y is to left
+def point2robotframe(point, robot_pose):
+    yaw = (robot_pose['rotation'] - 90.0)* math.pi/180.0 
+    robot_position = robot_pose['position']
+    R = np.matrix([[math.cos(yaw) , -math.sin(yaw) ],[math.sin(yaw), math.cos(yaw)]])
+    
+    point_in_robot_frame = np.transpose(R)*np.transpose(np.matrix(point) - robot_position)
+    point_in_robot_frame[1] =  point_in_robot_frame[1] * -1
+    return point_in_robot_frame
+
+#angle to point in robot frame
+def get_angle_to_point(point):
+    return math.atan2(point[1], point[0])
+
+#dist to point in robot frame
+def get_dist_to_point(point):
+    return math.sqrt(point[0]**2 + point[1]**2)
+
+#veeeery simple pure pursuit, drives to point in map coordinate
+def drive_to_point(goal_point, my_pose, robot_handle):
+        goal_in_robot_frame = point2robotframe(goal_point ,my_pose )
+        
+        angle = get_angle_to_point(goal_in_robot_frame) 
+        dist = get_dist_to_point(goal_in_robot_frame)
+        print('angle: ',angle )
+        if(abs(angle) > 0.1):
+          print("turn")
+          robot_handle.left(0.5)
+        else:
+          print("forward")
+          robot_handle.forward(0.1)
+        
+        print("dist: " , dist)
 
 if __name__ == '__main__':
     main()
