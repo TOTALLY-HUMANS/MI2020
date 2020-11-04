@@ -15,6 +15,9 @@ CONFIG_PORT = 3000
 ROBOT_PORT_1 = 3001
 ROBOT_PORT_2 = 3002
 
+GOAL_1 = [1080, 0]
+GOAL_2 = [0, 1080]
+
 
 class Robot:
     def __init__(self, sock, ip, port, name):
@@ -72,11 +75,10 @@ def main():
 
 
     for i in range(50000):
-        print(get_core_positions(capture))
+        #print(get_core_positions(capture))
         #print(get_robot_positions(capture))
-        #make_random_move(r1_moves)
-        #make_random_move(r2_moves)
-        drive_to_point(get_robot_positions(capture)[1]['position'], get_robot_positions(capture)[2], r1)
+        drive_to_point([GOAL_1], get_robot_positions(capture)[2], r1)
+        drive_to_point([GOAL_2], get_robot_positions(capture)[3], r2)
 
     r1.stop()
     r2.stop()
@@ -117,9 +119,12 @@ def drive_to_point(goal_point, my_pose, robot_handle):
         angle = get_angle_to_point(goal_in_robot_frame) 
         dist = get_dist_to_point(goal_in_robot_frame)
         print('angle: ',angle )
-        if(abs(angle) > 0.1):
-          print("turn")
-          robot_handle.left(0.5)
+        if (abs(angle) > 0.1):
+          print("turn l")
+          robot_handle.left(0.3)
+        elif (abs(angle) < 0.1):
+          print("turn r")
+          robot_handle.right(0.3)
         else:
           print("forward")
           robot_handle.forward(0.1)
