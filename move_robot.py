@@ -14,10 +14,13 @@ IP = "127.0.0.1"
 CONFIG_PORT = 3000
 ROBOT_PORT_1 = 3001
 ROBOT_PORT_2 = 3002
+ROBOT_PORT_3 = 3003
+ROBOT_PORT_4 = 3004
 
 
 class Robot:
-    def __init__(self, sock, ip, port, name):
+    def __init__(self, sock, ip, port, name, idx):
+        self.idx = idx
         self.name = name
         self.port = port
         self.ip = ip
@@ -41,8 +44,20 @@ class Robot:
         right = int(right * speed_percentage)
         self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
 
+    def tight_left(self, speed_percentage):
+        left, right = -100, 100
+        left = int(left * speed_percentage)
+        right = int(right * speed_percentage)
+        self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
+
     def right(self, speed_percentage):
         left, right = 100, 50
+        left = int(left * speed_percentage)
+        right = int(right * speed_percentage)
+        self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
+
+    def tight_right(self, speed_percentage):
+        left, right = 100, -100
         left = int(left * speed_percentage)
         right = int(right * speed_percentage)
         self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
@@ -64,63 +79,6 @@ class Point:
 
 GOAL_1 = Point(1080, 0)
 GOAL_2 = Point(0, 1080)
-
-def main():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    reset(sock)
-    capture = cv2.VideoCapture("http://localhost:8080")
-    capture.set(cv2.CAP_PROP_BUFFERSIZE, 2)
-
-    width = capture.get(cv2.CAP_PROP_FRAME_WIDTH)
-    height = capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
-    print(width, height)
-
-
-    r1 = Robot(sock, IP, ROBOT_PORT_1, "R2D2")
-    r2 = Robot(sock, IP, ROBOT_PORT_2, "BB8")
-
-    r1_moves = [r1.left, r1.right, r1.forward, r1.back]
-    r2_moves = [r2.left, r2.right, r2.forward, r2.back]
-
-
-    for i in range(50000):
-        #print("A", get_core_positions(capture)[0])
-        #print(get_robot_positions(capture))
-        try:
-            r_1_pos = get_robot_positions(capture)[2]
-            r_1_point = Point(r_1_pos['position'][0], r_1_pos['position'][1])
-            r_1_angle = r_1_pos['rotation']
-
-
-            r_2_pos = get_robot_positions(capture)[3]
-            r_2_point = Point(r_2_pos['position'][0], r_2_pos['position'][1])
-            r_2_angle = r_2_pos['rotation']
-
-            r_1_goal_point, dist_1 = closest_ball_coords(r_1_point, r_1_angle, get_core_positions(capture)[0])
-            r_2_goal_point, dist_2 = closest_ball_coords(r_2_point, r_2_angle, get_core_positions(capture)[0])
-
-            if dist_1 < 120:
-                drive_to_point(GOAL_1, r_1_angle, r_1_point, r1)
-            else:
-                drive_to_point(r_1_goal_point, r_1_angle, r_1_point, r1)
-
-            if dist_2 < 120:
-                drive_to_point(GOAL_1, r_2_angle, r_2_point, r2)
-            else:
-                drive_to_point(r_2_goal_point, r_2_angle, r_2_point, r2)
-
-
-
-
-            time.sleep(0.1)
-        except IndexError as e:
-            print("skipped", e)
-        except KeyError as ke:
-            print("skipped", ke)
-
-    r1.stop()
-    r2.stop()
     
 
 def make_random_move(moves):
@@ -173,18 +131,82 @@ def get_angle_dist_to_point(goal_point, my_pose, robot_angle):
     return angle, dist
 
 #veeeery simple pure pursuit, drives to point in map coordinate
-def drive_to_point(goal_point, robot_angle, my_pose, robot_handle):
+def drive_to_point(goal_point, robot_angle, my_pose, robot_handle, speed_multiplier):
     angle, dist = get_angle_dist_to_point(goal_point, my_pose, robot_angle)
-
-    if angle > 0.25:
-        robot_handle.left(0.2)
-    elif angle < -0.25:
-        robot_handle.right(0.2)
+    
+    if angle > 1.:
+        robot_handle.tight_left(0.2*speed_multiplier)
+    elif angle < -1.:
+        robot_handle.tight_right(0.2*speed_multiplier)
+    elif angle > 0.30:
+        robot_handle.left(0.2*speed_multiplier)
+    elif angle < -0.30:
+        robot_handle.right(0.2*speed_multiplier)
     else:
-        robot_handle.forward(0.15)
+        robot_handle.forward(0.2*speed_multiplier)
     
     print('angle: ', angle)
     print('dist: ' , dist)
+
+
+def robot_simple_logic(robot_handle, robot_positions, neg_core_positions):
+    goal = GOAL_1
+    if robot_handle.idx < 2:
+        goal = GOAL_2
+    r_pos = robot_positions[robot_handle.idx]
+    robot_position_point = Point(r_pos['position'][0], r_pos['position'][1])
+    robot_angle = r_pos['rotation']
+    target_ball, dist_to_ball = closest_ball_coords(robot_position_point, robot_angle, neg_core_positions)
+
+    if dist_to_ball < 90:
+        drive_to_point(goal, robot_angle, robot_position_point,
+                       robot_handle, speed_multiplier=1.0)
+    else:
+        drive_to_point(target_ball, robot_angle, robot_position_point, robot_handle, speed_multiplier=1.5)
+
+
+
+def main():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    reset(sock)
+    capture = cv2.VideoCapture("http://localhost:8080")
+    capture.set(cv2.CAP_PROP_BUFFERSIZE, 2)
+
+    width = capture.get(cv2.CAP_PROP_FRAME_WIDTH)
+    height = capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+    print(width, height)
+
+    r1 = Robot(sock, IP, ROBOT_PORT_1, "R2D2", 2)
+    r2 = Robot(sock, IP, ROBOT_PORT_2, "BB8", 3)
+
+    r3 = Robot(sock, IP, ROBOT_PORT_3, "Vader", 1)
+    r4 = Robot(sock, IP, ROBOT_PORT_4, "Sidious", 0)
+
+
+    for i in range(50000):
+        #print("A", get_core_positions(capture)[0])
+        #print(get_robot_positions(capture))
+        try:
+
+            robot_positions = get_robot_positions(capture)
+            core_positions = get_core_positions(capture)
+            neg_core_positions = core_positions[0]
+
+            robot_simple_logic(r1, robot_positions, neg_core_positions)
+            robot_simple_logic(r2, robot_positions, neg_core_positions)
+
+            robot_simple_logic(r3, robot_positions, neg_core_positions)
+            robot_simple_logic(r4, robot_positions, neg_core_positions)
+
+            #time.sleep(0.1)
+        except IndexError as e:
+            print("skipped", e)
+        except KeyError as ke:
+            print("skipped", ke)
+
+    r1.stop()
+    r2.stop()
 
 if __name__ == '__main__':
     main()
