@@ -25,6 +25,7 @@ class Robot:
         self.port = port
         self.ip = ip
         self.socket = sock
+        self.prev_pos = Point(2000, 2000)
 
     def forward(self, speed_percentage):
         left, right = 100, 100
@@ -70,6 +71,9 @@ class Point:
     def __init__(self, x, y):
         self.x = x
         self.y = y
+
+    def dist_to(self, other):
+        return math.sqrt(((self.x-other.x)**2)+((self.y-other.y)**2))
 
     def to_s(self):
         return "X: "+str(self.x)+", Y: "+str(self.y)
@@ -145,25 +149,36 @@ def drive_to_point(goal_point, robot_angle, my_pose, robot_handle, speed_multipl
     else:
         robot_handle.forward(0.2*speed_multiplier)
     
-    print('angle: ', angle)
-    print('dist: ' , dist)
+    #print('angle: ', angle)
+    #print('dist: ' , dist)
 
 
-def robot_simple_logic(robot_handle, robot_positions, neg_core_positions):
+def robot_simple_logic(robot_handle, robot_positions, neg_core_positions, tick):
     goal = GOAL_1
     if robot_handle.idx < 2:
         goal = GOAL_2
+
     r_pos = robot_positions[robot_handle.idx]
     robot_position_point = Point(r_pos['position'][0], r_pos['position'][1])
     robot_angle = r_pos['rotation']
     target_ball, dist_to_ball = closest_ball_coords(robot_position_point, robot_angle, neg_core_positions)
+
+    if tick % 10 == 0:
+        print(robot_position_point.to_s(), robot_handle.prev_pos.to_s())
+        dist = robot_position_point.dist_to(robot_handle.prev_pos)
+        if dist < 10:
+            robot_handle.back(1.0)
+            time.sleep(0.20)
+            robot_handle.prev_pos = Point(2000, 2000)
+            return
+        else:
+            robot_handle.prev_pos = robot_position_point
 
     if dist_to_ball < 90:
         drive_to_point(goal, robot_angle, robot_position_point,
                        robot_handle, speed_multiplier=1.0)
     else:
         drive_to_point(target_ball, robot_angle, robot_position_point, robot_handle, speed_multiplier=1.5)
-
 
 
 def main():
@@ -183,7 +198,6 @@ def main():
     r3 = Robot(sock, IP, ROBOT_PORT_3, "Vader", 1)
     r4 = Robot(sock, IP, ROBOT_PORT_4, "Sidious", 0)
 
-
     for i in range(50000):
         #print("A", get_core_positions(capture)[0])
         #print(get_robot_positions(capture))
@@ -193,13 +207,13 @@ def main():
             core_positions = get_core_positions(capture)
             neg_core_positions = core_positions[0]
 
-            robot_simple_logic(r1, robot_positions, neg_core_positions)
-            robot_simple_logic(r2, robot_positions, neg_core_positions)
+            robot_simple_logic(r1, robot_positions, neg_core_positions, i)
+            robot_simple_logic(r2, robot_positions, neg_core_positions, i)
 
-            robot_simple_logic(r3, robot_positions, neg_core_positions)
-            robot_simple_logic(r4, robot_positions, neg_core_positions)
+            robot_simple_logic(r3, robot_positions, neg_core_positions, i)
+            robot_simple_logic(r4, robot_positions, neg_core_positions, i)
 
-            #time.sleep(0.1)
+            #time.sleep(0.05)
         except IndexError as e:
             print("skipped", e)
         except KeyError as ke:
