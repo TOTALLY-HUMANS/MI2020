@@ -21,7 +21,6 @@ ROBOT_PORT_2 = 3002
 ROBOT_PORT_3 = 3003
 ROBOT_PORT_4 = 3004
 
-
 class Robot:
     def __init__(self, sock, ip, port, name, idx):
         self.idx = idx
@@ -30,72 +29,58 @@ class Robot:
         self.ip = ip
         self.socket = sock
         self.prev_pos = Point(2000, 2000)
+        self.position = Point(0.0, 0.0)
+        self.angle = 0.0
 
     def forward(self, speed_percentage):
-        left, right = 100, 100
-        left = int(left * speed_percentage)
-        right = int(right * speed_percentage)
-        self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
+        self._send_move(MAX_SPEED * speed_percentage, MAX_SPEED * speed_percentage)
 
     def back(self, speed_percentage):
-        left, right = -100, -100
-        left = int(left * speed_percentage)
-        right = int(right * speed_percentage)
-        self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
+        self._send_move(-MAX_SPEED * speed_percentage, -MAX_SPEED * speed_percentage)
 
     def left(self, speed_percentage):
-        left, right = 50, 100
-        left = int(left * speed_percentage)
-        right = int(right * speed_percentage)
-        self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
+        self._send_move(MAX_SPEED * 0.5 * speed_percentage, MAX_SPEED * speed_percentage)
 
     def tight_left(self, speed_percentage):
-        left, right = -100, 100
-        left = int(left * speed_percentage)
-        right = int(right * speed_percentage)
-        self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
+        self._send_move(-MAX_SPEED * speed_percentage, MAX_SPEED * speed_percentage)
 
     def right(self, speed_percentage):
-        left, right = 100, 50
-        left = int(left * speed_percentage)
-        right = int(right * speed_percentage)
-        self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
+        self._send_move(MAX_SPEED * speed_percentage, -MAX_SPEED * 0.5 * speed_percentage)
 
     def tight_right(self, speed_percentage):
-        left, right = 100, -100
-        left = int(left * speed_percentage)
-        right = int(right * speed_percentage)
-        self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
+        self._send_move(MAX_SPEED * speed_percentage, -MAX_SPEED * speed_percentage)
 
     def stop(self):
-        left, right = 0, 0
-        self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
+        self._send_move(self, 0, 0)
+
+    def _send_move(self, left, right):
+        self.socket.sendto(bytes(f"{int(left)};{int(right)}", "utf-8"), (self.ip, self.port))
+
+    def update(self, robot_frame_data):
+        r_pos = robot_frame_data[self.idx]
+        self.position = Point(r_pos['position'][0], r_pos['position'][1])
+        self.angle = r_pos['rotation']
+
+    def drive_to_point(self, target, speed_multiplier):
+        angle, dist = get_angle_dist_to_point(
+        target, self.position, self.angle)
+        if angle > 1.:
+            self.tight_left(0.2*speed_multiplier)
+        elif angle < -1.:
+            self.tight_right(0.2*speed_multiplier)
+        elif angle > 0.30:
+            self.left(0.2*speed_multiplier)
+        elif angle < -0.30:
+            self.right(0.2*speed_multiplier)
+        else:
+            self.forward(0.2*speed_multiplier)
 
 
 GOAL_1 = Polygon([(1080, 0), (840, 0), (1080, 250)])
 GOAL_2 = Polygon([(0, 1080), (0, 840), (250, 1080)])
-    
-
-def make_random_move(moves):
-    speed = 0.5
-    i = random.randint(0,len(moves)-1)
-    move = moves[i]
-    move(speed)
 
 def reset(sock):
     sock.sendto(bytes("reset", "utf-8"), (IP, CONFIG_PORT))
-
-
-#transforms point to robot coordinate frame. in robot frame positive x is forward and positive y is to left
-def point2robotframe(point, robot_pose, rotation):
-    yaw = (rotation - 90.0)* math.pi/180.0 
-    robot_position = [robot_pose.x, robot_pose.y]
-    R = np.matrix([[math.cos(yaw) , -math.sin(yaw) ],[math.sin(yaw), math.cos(yaw)]])
-    
-    point_in_robot_frame = np.transpose(R)*np.transpose(np.matrix([point.x, point.y]) - robot_position)
-    point_in_robot_frame[1] =  point_in_robot_frame[1] * -1
-
-    return Point(point_in_robot_frame[0], point_in_robot_frame[1])
 
 #angle to point in robot frame
 def get_angle_to_point(point):
@@ -124,59 +109,49 @@ def get_angle_dist_to_point(goal_point, my_pose, robot_angle):
     dist = get_dist_to_point(goal_in_robot_frame)
     return angle, dist
 
-#veeeery simple pure pursuit, drives to point in map coordinate
-def drive_to_point(goal_point, robot_angle, my_pose, robot_handle, speed_multiplier):
-    angle, dist = get_angle_dist_to_point(goal_point, my_pose, robot_angle)
-    
-    if angle > 1.:
-        robot_handle.tight_left(0.2*speed_multiplier)
-    elif angle < -1.:
-        robot_handle.tight_right(0.2*speed_multiplier)
-    elif angle > 0.30:
-        robot_handle.left(0.2*speed_multiplier)
-    elif angle < -0.30:
-        robot_handle.right(0.2*speed_multiplier)
-    else:
-        robot_handle.forward(0.2*speed_multiplier)
-    
-    #print('angle: ', angle)
-    #print('dist: ' , dist)
+#transforms point to robot coordinate frame. in robot frame positive x is forward and positive y is to left
+def point2robotframe(point, robot_pose, rotation):
+    yaw = (rotation - 90.0) * math.pi/180.0
+    robot_position = [robot_pose.x, robot_pose.y]
+    R = np.matrix([[math.cos(yaw), -math.sin(yaw)],
+                   [math.sin(yaw), math.cos(yaw)]])
 
+    point_in_robot_frame = np.transpose(
+        R)*np.transpose(np.matrix([point.x, point.y]) - robot_position)
+    point_in_robot_frame[1] = point_in_robot_frame[1] * -1
 
-def robot_simple_logic(robot_handle, robot_positions, neg_core_positions, tick):
-    
+    return Point(point_in_robot_frame[0], point_in_robot_frame[1])
+
+def robot_simple_logic(robot, neg_core_positions, tick):
     goal = GOAL_1.centroid
-    if robot_handle.idx < 2:
+    if robot.idx < 2:
         goal = GOAL_2.centroid
 
-    r_pos = robot_positions[robot_handle.idx]
-    robot_position_point = Point(r_pos['position'][0], r_pos['position'][1])
-    robot_angle = r_pos['rotation']
-    target_ball, dist_to_ball = closest_ball_coords(robot_position_point, robot_angle, neg_core_positions)
+    target_ball, dist_to_ball = closest_ball_coords(
+        robot.position,robot.angle , neg_core_positions)
 
-    if GOAL_1.distance(robot_position_point) < 30:
-        drive_to_point(GOAL_2.centroid, robot_angle, robot_position_point, robot_handle, speed_multiplier=1.5)
+    if GOAL_1.distance(robot.position) < 30:
+        robot.drive_to_point(GOAL_2.centroid, 1.5)
         return
-    if GOAL_2.distance(robot_position_point) < 30:
-        drive_to_point(GOAL_1.centroid, robot_angle, robot_position_point, robot_handle, speed_multiplier=1.5)
+    if GOAL_2.distance(robot.position) < 30:
+        robot.drive_to_point(GOAL_1.centroid, 1.5)
 
 
     if tick % 10 == 0:
-        print(robot_position_point, robot_handle.prev_pos)
-        dist = robot_position_point.distance(robot_handle.prev_pos)
+        print(robot.position, robot.prev_pos)
+        dist = robot.position.distance(robot.prev_pos)
         if dist < 10:
-            robot_handle.back(1.0)
+            robot.back(1.0)
             time.sleep(0.20)
-            robot_handle.prev_pos = Point(2000, 2000)
+            robot.prev_pos = Point(2000, 2000)
             return
         else:
-            robot_handle.prev_pos = robot_position_point
+            robot.prev_pos = robot.position
 
     if dist_to_ball < 90:
-        drive_to_point(goal, robot_angle, robot_position_point,
-                       robot_handle, speed_multiplier=1.0)
+        robot.drive_to_point(goal, 1.0)
     else:
-        drive_to_point(target_ball, robot_angle, robot_position_point, robot_handle, speed_multiplier=1.5)
+        robot.drive_to_point(target_ball, 1.5)
 
 
 def main():
@@ -190,40 +165,50 @@ def main():
 
     print(width, height)
 
-    r1 = Robot(sock, IP, ROBOT_PORT_1, "R2D2", 2)
-    r2 = Robot(sock, IP, ROBOT_PORT_2, "BB8", 3)
+    # Our robots
+    r1 = Robot(sock, IP, ROBOT_PORT_1, "RC-1138 Boss", 2)
+    r2 = Robot(sock, IP, ROBOT_PORT_2, "RC-1262 Scorch", 3)
 
-    r3 = Robot(sock, IP, ROBOT_PORT_3, "Vader", 1)
-    r4 = Robot(sock, IP, ROBOT_PORT_4, "Sidious", 0)
+    # Opponent robots
+    r3 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 1)
+    r4 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 0)
 
-    for i in range(50000):
-        #print("A", get_core_positions(capture)[0])
-        #print(get_robot_positions(capture))
-        robot_positions = get_robot_positions(capture)
-        core_positions = get_core_positions(capture)
+    tick = 0
+    while True:
+        tick+=1
+        robot_frame_data, neg_core_positions, pos_core_positions = parse_frame(capture)
 
-        
-        neg_core_positions = array_coords_to_points(core_positions[0])
         neg_core_positions = remove_finished_cores(neg_core_positions)
 
-        if len(robot_positions) < 4 or len(neg_core_positions) <= 0:
+        if len(robot_frame_data) < 4 or len(neg_core_positions) <= 0:
             print("SKIPPED")
             continue
 
-        print(robot_positions)
-        print(neg_core_positions)
+        r1.update(robot_frame_data)
+        r2.update(robot_frame_data)
+        r3.update(robot_frame_data)
+        r4.update(robot_frame_data)
         
+        robot_simple_logic(r1, neg_core_positions, tick)
+        robot_simple_logic(r2, neg_core_positions, tick)
 
-        robot_simple_logic(r1, robot_positions, neg_core_positions, i)
-        robot_simple_logic(r2, robot_positions, neg_core_positions, i)
-
-        robot_simple_logic(r3, robot_positions, neg_core_positions, i)
-        robot_simple_logic(r4, robot_positions, neg_core_positions, i)
+        robot_simple_logic(r3, neg_core_positions, tick)
+        robot_simple_logic(r4, neg_core_positions, tick)
 
         #time.sleep(0.05)
 
     r1.stop()
     r2.stop()
+
+def parse_frame(capture):
+    robot_positions = get_robot_positions(capture)
+    core_positions = get_core_positions(capture)
+    neg_core_positions = array_coords_to_points(core_positions[0])
+    #pos_core_positions = array_coords_to_points(core_positions[0])
+    pos_core_positions = []
+
+    return robot_positions, neg_core_positions, pos_core_positions
+
 
 def array_coords_to_points(array_coords):
     points = []
