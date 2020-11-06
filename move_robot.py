@@ -5,6 +5,10 @@ import cv2
 import numpy as np
 import math
 
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
+
+
 from detect_aruco_markers_from_image import get_robot_positions
 from detect_energy_cores_from_image import get_core_positions
 
@@ -67,22 +71,9 @@ class Robot:
         left, right = 0, 0
         self.socket.sendto(bytes(f"{left};{right}", "utf-8"), (self.ip, self.port))
 
-class Point:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
 
-    def dist_to(self, other):
-        return math.sqrt(((self.x-other.x)**2)+((self.y-other.y)**2))
-
-    def to_s(self):
-        return "X: "+str(self.x)+", Y: "+str(self.y)
-
-    def to_a(self):
-        return [self.x, self.y]
-
-GOAL_1 = Point(1080, 0)
-GOAL_2 = Point(0, 1080)
+GOAL_1 = Polygon([(1080, 0), (840, 0), (1080, 250)])
+GOAL_2 = Polygon([(0, 1080), (0, 840), (250, 1080)])
     
 
 def make_random_move(moves):
@@ -98,10 +89,10 @@ def reset(sock):
 #transforms point to robot coordinate frame. in robot frame positive x is forward and positive y is to left
 def point2robotframe(point, robot_pose, rotation):
     yaw = (rotation - 90.0)* math.pi/180.0 
-    robot_position = robot_pose.to_a()
+    robot_position = [robot_pose.x, robot_pose.y]
     R = np.matrix([[math.cos(yaw) , -math.sin(yaw) ],[math.sin(yaw), math.cos(yaw)]])
     
-    point_in_robot_frame = np.transpose(R)*np.transpose(np.matrix(point.to_a()) - robot_position)
+    point_in_robot_frame = np.transpose(R)*np.transpose(np.matrix([point.x, point.y]) - robot_position)
     point_in_robot_frame[1] =  point_in_robot_frame[1] * -1
 
     return Point(point_in_robot_frame[0], point_in_robot_frame[1])
@@ -115,16 +106,15 @@ def get_dist_to_point(point):
     return math.sqrt(point.x**2 + point.y**2)
 
 def closest_ball_coords(robot_pos, robot_angle, ball_coords):
-    closest_ball_point = Point(ball_coords[0][0], ball_coords[0][1])
+    closest_ball_point = ball_coords[0]
     _, closest_dist = get_angle_dist_to_point(closest_ball_point, robot_pos, robot_angle)
-    for coord in ball_coords:
-        point = Point(coord[0], coord[1])
+    for point in ball_coords:
         _, dist = get_angle_dist_to_point(point, robot_pos, robot_angle)
         if dist < closest_dist:
             closest_dist = dist
             closest_ball_point = point
         
-    #print("CLOSEST", closest_ball_point.to_s(), "DIST:", closest_dist)
+    #print("CLOSEST", closest_ball_point, "DIST:", closest_dist)
     return closest_ball_point, closest_dist
 
 
@@ -154,18 +144,26 @@ def drive_to_point(goal_point, robot_angle, my_pose, robot_handle, speed_multipl
 
 
 def robot_simple_logic(robot_handle, robot_positions, neg_core_positions, tick):
-    goal = GOAL_1
+    
+    goal = GOAL_1.centroid
     if robot_handle.idx < 2:
-        goal = GOAL_2
+        goal = GOAL_2.centroid
 
     r_pos = robot_positions[robot_handle.idx]
     robot_position_point = Point(r_pos['position'][0], r_pos['position'][1])
     robot_angle = r_pos['rotation']
     target_ball, dist_to_ball = closest_ball_coords(robot_position_point, robot_angle, neg_core_positions)
 
+    if GOAL_1.distance(robot_position_point) < 30:
+        drive_to_point(GOAL_2.centroid, robot_angle, robot_position_point, robot_handle, speed_multiplier=1.5)
+        return
+    if GOAL_2.distance(robot_position_point) < 30:
+        drive_to_point(GOAL_1.centroid, robot_angle, robot_position_point, robot_handle, speed_multiplier=1.5)
+
+
     if tick % 10 == 0:
-        print(robot_position_point.to_s(), robot_handle.prev_pos.to_s())
-        dist = robot_position_point.dist_to(robot_handle.prev_pos)
+        print(robot_position_point, robot_handle.prev_pos)
+        dist = robot_position_point.distance(robot_handle.prev_pos)
         if dist < 10:
             robot_handle.back(1.0)
             time.sleep(0.20)
@@ -201,26 +199,48 @@ def main():
     for i in range(50000):
         #print("A", get_core_positions(capture)[0])
         #print(get_robot_positions(capture))
-        try:
+        robot_positions = get_robot_positions(capture)
+        core_positions = get_core_positions(capture)
 
-            robot_positions = get_robot_positions(capture)
-            core_positions = get_core_positions(capture)
-            neg_core_positions = core_positions[0]
+        
+        neg_core_positions = array_coords_to_points(core_positions[0])
+        neg_core_positions = remove_finished_cores(neg_core_positions)
 
-            robot_simple_logic(r1, robot_positions, neg_core_positions, i)
-            robot_simple_logic(r2, robot_positions, neg_core_positions, i)
+        if len(robot_positions) < 4 or len(neg_core_positions) <= 0:
+            print("SKIPPED")
+            continue
 
-            robot_simple_logic(r3, robot_positions, neg_core_positions, i)
-            robot_simple_logic(r4, robot_positions, neg_core_positions, i)
+        print(robot_positions)
+        print(neg_core_positions)
+        
 
-            #time.sleep(0.05)
-        except IndexError as e:
-            print("skipped", e)
-        except KeyError as ke:
-            print("skipped", ke)
+        robot_simple_logic(r1, robot_positions, neg_core_positions, i)
+        robot_simple_logic(r2, robot_positions, neg_core_positions, i)
+
+        robot_simple_logic(r3, robot_positions, neg_core_positions, i)
+        robot_simple_logic(r4, robot_positions, neg_core_positions, i)
+
+        #time.sleep(0.05)
 
     r1.stop()
     r2.stop()
+
+def array_coords_to_points(array_coords):
+    points = []
+    for coord in array_coords:
+        points.append(Point(coord[0], coord[1]))
+    return points
+
+
+def remove_finished_cores(ecore_positions):
+    filtered = []
+    for point in ecore_positions:
+        if GOAL_1.contains(point) or GOAL_2.contains(point):
+            print("REMOVED", point)
+            continue
+        filtered.append(point)
+        
+    return filtered
 
 if __name__ == '__main__':
     main()
