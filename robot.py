@@ -52,6 +52,7 @@ class Robot:
 
     def drive_to_point(self, target, speed_multiplier):
         angle = self.get_angle_to_point(target, self.position, self.angle)
+        print(angle)
         if angle > 1.:
             self.tight_left(0.2*speed_multiplier)
         elif angle < -1.:
@@ -73,7 +74,7 @@ class Robot:
             self.forward(0.2*speed_multiplier)
 
     #transforms point to robot coordinate frame. in robot frame positive x is forward and positive y is to left
-    def get_angle_to_point(point, robot_pose, angle):
+    def get_angle_to_point(self, point, robot_pose, angle):
         yaw = (angle - 90.0) * math.pi/180.0
         robot_position = [robot_pose.x, robot_pose.y]
         R = np.matrix([[math.cos(yaw), -math.sin(yaw)],[math.sin(yaw), math.cos(yaw)]])
