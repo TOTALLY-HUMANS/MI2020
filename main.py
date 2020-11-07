@@ -103,11 +103,11 @@ def main():
 
     print(width, height)
 
-    # Our robots
+    # Opponent robots
     r1 = Robot(sock, IP, ROBOT_PORT_1, "RC-1138 Boss", 2)
     r2 = Robot(sock, IP, ROBOT_PORT_2, "RC-1262 Scorch", 3)
 
-    # Opponent robots
+    # Our robots
     r3 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 8)
     r4 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 9)
 
