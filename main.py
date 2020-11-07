@@ -6,7 +6,6 @@ from robot import Robot
 from game import Game
 from shapely.geometry import Point
 
-from detect_aruco_markers_from_image import get_robot_positions
 
 IP = "127.0.0.1"
 CONFIG_PORT = 3000
@@ -38,7 +37,8 @@ def robot_simple_logic(robot, game):
     if robot.idx < 2:
         goal = game.goal_right.centroid
 
-    target_ball, dist_to_ball = closest_ball_coords(robot.position, game.neg_core_positions)
+    target_ball, dist_to_ball = closest_ball_coords(
+        robot.position, game.get_cores_not_in_goal(game.neg_core_positions))
 
     if game.goal_left.distance(robot.position) < 30:
         robot.drive_to_point(game.goal_right.centroid, 1.5)
@@ -63,6 +63,14 @@ def robot_simple_logic(robot, game):
     else:
         robot.drive_to_point(target_ball, 1.5)
 
+def game_tick(capture, game):
+    game.update(capture)
+
+    if len(game.neg_core_positions) <= 0:
+        return
+
+    for robot in game.team_robots:
+        robot_simple_logic(robot, game)
 
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -75,8 +83,6 @@ def main():
 
     print(width, height)
 
-    game = Game()
-
     # Our robots
     r1 = Robot(sock, IP, ROBOT_PORT_1, "RC-1138 Boss", 2)
     r2 = Robot(sock, IP, ROBOT_PORT_2, "RC-1262 Scorch", 3)
@@ -85,31 +91,14 @@ def main():
     r3 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 1)
     r4 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 0)
 
-    tick = 0
+    game_1 = Game([r1, r2])
+    game_2 = Game([r3, r4])
+
     while True:
-        tick+=1
-        robot_frame_data = get_robot_positions(capture)
-        game.update(capture)
-
-        game.neg_core_positions = game.remove_finished_cores(game.neg_core_positions)
-
-        if len(robot_frame_data) < 4 or len(game.neg_core_positions) <= 0:
-            print("SKIPPED")
-            continue
-
-        r1.update(robot_frame_data)
-        r2.update(robot_frame_data)
-        r3.update(robot_frame_data)
-        r4.update(robot_frame_data)
-        
-        robot_simple_logic(r1, game)
-        robot_simple_logic(r2, game)
-
-        robot_simple_logic(r3, game)
-        robot_simple_logic(r4, game)
+        game_tick(capture, game_1)
+        game_tick(capture, game_2)
 
         #time.sleep(0.05)
-
 
 if __name__ == '__main__':
     main()
