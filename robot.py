@@ -14,6 +14,7 @@ class Robot:
         self.prev_pos = Point(2000, 2000)
         self.position = Point(0.0, 0.0)
         self.angle = 0.0
+        self.target_core = Point(2000, 2000)
 
     def forward(self, speed_percentage):
         self._send_move(MAX_SPEED * speed_percentage, MAX_SPEED * speed_percentage)
@@ -50,27 +51,29 @@ class Robot:
         self.position = Point(r_pos['position'][0], r_pos['position'][1])
         self.angle = r_pos['rotation']
 
-    def drive_to_point(self, target, speed_multiplier):
+    def drive_to_point(self, target, speed_percent):
+        speed = np.clip(speed_percent, 0.0, 1.0)
         angle = self.get_angle_to_point(target, self.position, self.angle)
         if angle > 1.:
-            self.tight_left(0.2*speed_multiplier)
+            self.tight_left(speed)
         elif angle < -1.:
-            self.tight_right(0.2*speed_multiplier)
+            self.tight_right(speed)
         elif angle > 0.30:
-            self.left(0.2*speed_multiplier)
+            self.left(speed)
         elif angle < -0.30:
-            self.right(0.2*speed_multiplier)
+            self.right(speed)
         else:
-            self.forward(0.2*speed_multiplier)
+            self.forward(speed)
 
-    def drive_to_point_smooth(self, target, speed_multiplier):
+    def drive_to_point_smooth(self, target, speed_percent):
+        speed = np.clip(speed_percent, 0.0, 1.0)
         angle = self.get_angle_to_point(target, self.position, self.angle)
         if angle > 0.40:
-            self.left(0.2*speed_multiplier)
+            self.left(speed)
         elif angle < -0.40:
-            self.right(0.2*speed_multiplier)
+            self.right(speed)
         else:
-            self.forward(0.2*speed_multiplier)
+            self.forward(speed)
 
     #transforms point to robot coordinate frame. in robot frame positive x is forward and positive y is to left
     def get_angle_to_point(self, point, robot_pose, angle):

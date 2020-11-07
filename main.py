@@ -20,17 +20,26 @@ ROBOT_PORT_4 = 3004
 def reset(sock):
     sock.sendto(bytes("reset", "utf-8"), (IP, CONFIG_PORT))
 
-def closest_ball_coords(robot_pos, ball_coords):
+def select_core_logic(game, robot, ball_coords):
+    target_pos = robot.position
     if not ball_coords:
         return None, 0
 
-    closest_ball_point = ball_coords[0]
-    closest_dist = closest_ball_point.distance(robot_pos)
+    targeted = []
+    for robot in game.team_robots:
+        targeted.append(robot.target_core)
+
+    closest_ball_point = None
+    closest_dist = 10000000
     for point in ball_coords:
-        dist = point.distance(robot_pos)
-        if dist < closest_dist:
+        dist = point.distance(target_pos)
+        if dist < closest_dist and point not in targeted:
             closest_dist = dist
             closest_ball_point = point
+
+    if closest_ball_point is None:
+        closest_ball_point = ball_coords[0]
+        closest_dist = ball_coords[0].distance(target_pos)
         
     return closest_ball_point, closest_dist
 
@@ -50,23 +59,24 @@ def unstuck_logic(robot, game):
 
 
 def robot_simple_logic(robot, game):
-    target_ball, dist_to_ball = closest_ball_coords(
-        robot.position, game.get_cores_not_in_goal(game.neg_core_positions))
+    robot.target_core = None
+    target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
+    robot.target_core = target_ball
 
     is_stuck = unstuck_logic(robot, game)
     if is_stuck:
         return
 
-    if game.goal_own.distance(robot.position) < 50:
-        robot.drive_to_point(game.goal_opponent.centroid, 1.5)
+    if game.goal_own.distance(robot.position) < 40:
+        robot.drive_to_point(game.goal_opponent.centroid, 0.25)
         return
-    if game.goal_opponent.distance(robot.position) < 50:
-        robot.drive_to_point(game.goal_own.centroid, 1.5)
+    if game.goal_opponent.distance(robot.position) < 40:
+        robot.drive_to_point(game.goal_own.centroid, 0.25)
 
     if dist_to_ball < 90:
-        robot.drive_to_point_smooth(game.goal_opponent.centroid, 1.0)
+        robot.drive_to_point_smooth(game.goal_opponent.centroid, 0.25)
     else:
-        robot.drive_to_point(target_ball, 1.5)
+        robot.drive_to_point(target_ball, 0.25)
 
 
 def game_tick(capture, game):

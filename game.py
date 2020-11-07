@@ -34,7 +34,8 @@ class Game:
             if not point_in_goal:
                 filtered.append(point)
             else:
-                print("REMOVED", point)
+                #print("REMOVED", point)
+                pass
 
         return filtered
     
@@ -44,3 +45,18 @@ def array_coords_to_points(array_coords):
     for coord in array_coords:
         points.append(Point(coord[0], coord[1]))
     return points
+
+#computes unit vector between start&end
+#uses this unit vector and its normal to
+#compute points behind and both sides of the end
+#start and end are xy-point, dists is list in form [dist_behind, dist_side1, dist_side2]
+#return list of xy-points
+def points_side_behind(start, end, dists=[10,10,10]):
+    dist = start.distance(end)
+    vec = [ (end.x - start.x)/dist, (end.y - start.y)/dist ]
+    
+    behind = Point( end.x + vec[0]*dists[0], end.y + vec[1]*dists[0] )
+    side1 = Point( end.x - vec[1]*dists[1], end.y + vec[0]*dists[1] )
+    side2 = Point( end.x + vec[1]*dists[2], end.y - vec[0]*dists[2] )
+    
+    return [behind, side1, side2]
