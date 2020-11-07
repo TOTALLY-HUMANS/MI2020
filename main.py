@@ -63,16 +63,16 @@ def robot_simple_logic(robot, game):
         robot.drive_to_point(target_ball, 1.5)
 
 def game_tick(capture, game):
-    game.update(capture)
+    try:
+        game.update(capture)
 
-    if len(game.neg_core_positions) <= 0:
-        return
+        if len(game.neg_core_positions) <= 0:
+            return
 
-    for robot in game.team_robots:
-        try:
-            robot_simple_logic(robot, game)
-        except Exception as e:
-            print(e, e.with_traceback)
+        for robot in game.team_robots:
+                robot_simple_logic(robot, game)
+    except Exception as e:
+        print(e, e.with_traceback)
 
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
