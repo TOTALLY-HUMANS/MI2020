@@ -70,7 +70,10 @@ def game_tick(capture, game):
         return
 
     for robot in game.team_robots:
-        robot_simple_logic(robot, game)
+        try:
+            robot_simple_logic(robot, game)
+        except Exception as e:
+            print(e, e.with_traceback)
 
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
