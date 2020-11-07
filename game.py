@@ -5,14 +5,14 @@ from shapely.geometry import Point
 
 
 class Game:
-    def __init__(self, robots):
+    def __init__(self, robots, goal_own, goal_opponent):
         self.neg_core_positions = []
         self.pos_core_positions = []
 
         self.team_robots = robots
 
-        self.goal_left = Polygon([(1080, 0), (840, 0), (1080, 250)])
-        self.goal_right = Polygon([(0, 1080), (0, 840), (250, 1080)])
+        self.goal_own = Polygon([(1080, 0), (840, 0), (1080, 250)])
+        self.goal_opponent = Polygon([(0, 1080), (0, 840), (250, 1080)])
 
         self.tick = 0
 
@@ -30,7 +30,7 @@ class Game:
     def get_cores_not_in_goal(self, ecore_positions):
         filtered = []
         for point in ecore_positions:
-            point_in_goal = self.goal_left.contains(point) or self.goal_left.contains(point)
+            point_in_goal = self.goal_own.contains(point) or self.goal_opponent.contains(point)
             if not point_in_goal:
                 filtered.append(point)
             else:

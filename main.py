@@ -5,7 +5,10 @@ import cv2
 from robot import Robot
 from game import Game
 from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
 
+GOAL_LEFT = Polygon([(1080, 0), (840, 0), (1080, 250)])
+GOAL_RIGHT = Polygon([(0, 1080), (0, 840), (250, 1080)])
 
 IP = "127.0.0.1"
 CONFIG_PORT = 3000
@@ -33,18 +36,18 @@ def closest_ball_coords(robot_pos, ball_coords):
 
 
 def robot_simple_logic(robot, game):
-    goal = game.goal_left.centroid
+    goal = game.goal_own.centroid
     if robot.idx < 2:
-        goal = game.goal_right.centroid
+        goal = game.goal_opponent.centroid
 
     target_ball, dist_to_ball = closest_ball_coords(
         robot.position, game.get_cores_not_in_goal(game.neg_core_positions))
 
-    if game.goal_left.distance(robot.position) < 30:
-        robot.drive_to_point(game.goal_right.centroid, 1.5)
+    if game.goal_own.distance(robot.position) < 30:
+        robot.drive_to_point(game.goal_opponent.centroid, 1.5)
         return
-    if game.goal_right.distance(robot.position) < 30:
-        robot.drive_to_point(game.goal_left.centroid, 1.5)
+    if game.goal_opponent.distance(robot.position) < 30:
+        robot.drive_to_point(game.goal_own.centroid, 1.5)
 
 
     if game.tick % 10 == 0:
@@ -91,11 +94,11 @@ def main():
     r2 = Robot(sock, IP, ROBOT_PORT_2, "RC-1262 Scorch", 3)
 
     # Opponent robots
-    r3 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 1)
-    r4 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 0)
+    r3 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 8)
+    r4 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 9)
 
-    game_1 = Game([r1, r2])
-    game_2 = Game([r3, r4])
+    game_1 = Game([r1, r2], GOAL_LEFT, GOAL_RIGHT)
+    game_2 = Game([r3, r4], GOAL_RIGHT, GOAL_LEFT)
 
     while True:
         game_tick(capture, game_1)
