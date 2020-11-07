@@ -11,8 +11,8 @@ class Game:
 
         self.team_robots = robots
 
-        self.goal_own = Polygon([(1080, 0), (840, 0), (1080, 250)])
-        self.goal_opponent = Polygon([(0, 1080), (0, 840), (250, 1080)])
+        self.goal_own = goal_own
+        self.goal_opponent = goal_opponent
 
         self.tick = 0
 

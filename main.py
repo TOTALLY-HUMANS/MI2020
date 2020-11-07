@@ -36,10 +36,6 @@ def closest_ball_coords(robot_pos, ball_coords):
 
 
 def robot_simple_logic(robot, game):
-    goal = game.goal_own.centroid
-    if robot.idx < 2:
-        goal = game.goal_opponent.centroid
-
     target_ball, dist_to_ball = closest_ball_coords(
         robot.position, game.get_cores_not_in_goal(game.neg_core_positions))
 
@@ -62,7 +58,7 @@ def robot_simple_logic(robot, game):
             robot.prev_pos = robot.position
 
     if dist_to_ball < 90:
-        robot.drive_to_point_smooth(goal, 1.0)
+        robot.drive_to_point_smooth(game.goal_opponent.centroid, 1.0)
     else:
         robot.drive_to_point(target_ball, 1.5)
 

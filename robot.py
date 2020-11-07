@@ -52,7 +52,6 @@ class Robot:
 
     def drive_to_point(self, target, speed_multiplier):
         angle = self.get_angle_to_point(target, self.position, self.angle)
-        print(angle)
         if angle > 1.:
             self.tight_left(0.2*speed_multiplier)
         elif angle < -1.:
