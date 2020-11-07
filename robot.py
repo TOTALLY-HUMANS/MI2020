@@ -51,7 +51,7 @@ class Robot:
         self.angle = r_pos['rotation']
 
     def drive_to_point(self, target, speed_multiplier):
-        angle, dist = get_angle_dist_to_point(target, self.position, self.angle)
+        angle = get_angle_point(target, self.position, self.angle)
         if angle > 1.:
             self.tight_left(0.2*speed_multiplier)
         elif angle < -1.:
@@ -64,7 +64,7 @@ class Robot:
             self.forward(0.2*speed_multiplier)
 
     def drive_to_point_smooth(self, target, speed_multiplier):
-        angle, dist = get_angle_dist_to_point(target, self.position, self.angle)
+        angle = get_angle_point(target, self.position, self.angle)
         if angle > 0.40:
             self.left(0.2*speed_multiplier)
         elif angle < -0.40:
@@ -72,15 +72,12 @@ class Robot:
         else:
             self.forward(0.2*speed_multiplier)
 
-def get_angle_dist_to_point(goal_point, my_pose, robot_angle):
+def get_angle_point(goal_point, my_pose, robot_angle):
     goal_in_robot_frame = point2robotframe(goal_point, my_pose, robot_angle)
     angle = get_angle_to_point(goal_in_robot_frame)
-    dist = get_dist_to_point(goal_in_robot_frame)
-    return angle, dist
+    return angle
 
 #transforms point to robot coordinate frame. in robot frame positive x is forward and positive y is to left
-
-
 def point2robotframe(point, robot_pose, rotation):
     yaw = (rotation - 90.0) * math.pi/180.0
     robot_position = [robot_pose.x, robot_pose.y]
@@ -97,7 +94,3 @@ def point2robotframe(point, robot_pose, rotation):
 #angle to point in robot frame
 def get_angle_to_point(point):
     return math.atan2(point.y, point.x)
-
-#dist to point in robot frame
-def get_dist_to_point(point):
-    return math.sqrt(point.x**2 + point.y**2)
