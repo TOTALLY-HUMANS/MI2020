@@ -51,7 +51,7 @@ class Robot:
         self.angle = r_pos['rotation']
 
     def drive_to_point(self, target, speed_multiplier):
-        angle = get_angle_point(target, self.position, self.angle)
+        angle = get_angle_to_point(target, self.position, self.angle)
         if angle > 1.:
             self.tight_left(0.2*speed_multiplier)
         elif angle < -1.:
@@ -64,7 +64,7 @@ class Robot:
             self.forward(0.2*speed_multiplier)
 
     def drive_to_point_smooth(self, target, speed_multiplier):
-        angle = get_angle_point(target, self.position, self.angle)
+        angle = get_angle_to_point(target, self.position, self.angle)
         if angle > 0.40:
             self.left(0.2*speed_multiplier)
         elif angle < -0.40:
@@ -72,20 +72,17 @@ class Robot:
         else:
             self.forward(0.2*speed_multiplier)
 
-def get_angle_point(goal_point, my_pose, robot_angle):
+def get_angle_to_point(goal_point, my_pose, robot_angle):
     goal_in_robot_frame = point2robotframe(goal_point, my_pose, robot_angle)
     angle = get_angle_to_point(goal_in_robot_frame)
     return angle
 
 #transforms point to robot coordinate frame. in robot frame positive x is forward and positive y is to left
-def point2robotframe(point, robot_pose, rotation):
-    yaw = (rotation - 90.0) * math.pi/180.0
+def point2robotframe(point, robot_pose, angle):
+    yaw = (angle - 90.0) * math.pi/180.0
     robot_position = [robot_pose.x, robot_pose.y]
-    R = np.matrix([[math.cos(yaw), -math.sin(yaw)],
-                   [math.sin(yaw), math.cos(yaw)]])
-
-    point_in_robot_frame = np.transpose(
-        R)*np.transpose(np.matrix([point.x, point.y]) - robot_position)
+    R = np.matrix([[math.cos(yaw), -math.sin(yaw)],[math.sin(yaw), math.cos(yaw)]])
+    point_in_robot_frame = np.transpose(R)*np.transpose(np.matrix([point.x, point.y]) - robot_position)
     point_in_robot_frame[1] = point_in_robot_frame[1] * -1
 
     return Point(point_in_robot_frame[0], point_in_robot_frame[1])
