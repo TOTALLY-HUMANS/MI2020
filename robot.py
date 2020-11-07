@@ -74,7 +74,7 @@ class Robot:
 
 def get_angle_to_point(goal_point, my_pose, robot_angle):
     goal_in_robot_frame = point2robotframe(goal_point, my_pose, robot_angle)
-    angle = get_angle_to_point(goal_in_robot_frame)
+    angle = get_angle(goal_in_robot_frame)
     return angle
 
 #transforms point to robot coordinate frame. in robot frame positive x is forward and positive y is to left
@@ -89,5 +89,5 @@ def point2robotframe(point, robot_pose, angle):
 
 
 #angle to point in robot frame
-def get_angle_to_point(point):
+def get_angle(point):
     return math.atan2(point.y, point.x)
