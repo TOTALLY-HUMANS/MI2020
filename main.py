@@ -35,32 +35,39 @@ def closest_ball_coords(robot_pos, ball_coords):
     return closest_ball_point, closest_dist
 
 
+def unstuck_logic(robot, game):
+    if game.tick % 5 == 0:
+        if robot.prev_pos is not None and robot.position.distance(robot.prev_pos) < 20:
+            robot.prev_pos = None
+        else:
+            robot.prev_pos = robot.position
+
+    if robot.prev_pos == None:
+        robot.back(0.3)
+        return True
+
+    return False
+
+
 def robot_simple_logic(robot, game):
     target_ball, dist_to_ball = closest_ball_coords(
         robot.position, game.get_cores_not_in_goal(game.neg_core_positions))
 
-    if game.goal_own.distance(robot.position) < 30:
+    is_stuck = unstuck_logic(robot, game)
+    if is_stuck:
+        return
+
+    if game.goal_own.distance(robot.position) < 50:
         robot.drive_to_point(game.goal_opponent.centroid, 1.5)
         return
-    if game.goal_opponent.distance(robot.position) < 30:
+    if game.goal_opponent.distance(robot.position) < 50:
         robot.drive_to_point(game.goal_own.centroid, 1.5)
-
-
-    if game.tick % 10 == 0:
-        print(robot.position, robot.prev_pos)
-        dist = robot.position.distance(robot.prev_pos)
-        if dist < 10:
-            robot.back(1.0)
-            time.sleep(0.20)
-            robot.prev_pos = Point(2000, 2000)
-            return
-        else:
-            robot.prev_pos = robot.position
 
     if dist_to_ball < 90:
         robot.drive_to_point_smooth(game.goal_opponent.centroid, 1.0)
     else:
         robot.drive_to_point(target_ball, 1.5)
+
 
 def game_tick(capture, game):
     try:
