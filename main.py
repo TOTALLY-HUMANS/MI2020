@@ -7,8 +7,8 @@ from game import Game
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
-GOAL_LEFT = Polygon([(1080, 0), (840, 0), (1080, 250)])
-GOAL_RIGHT = Polygon([(0, 1080), (0, 840), (250, 1080)])
+GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
+GOAL_LEFT = Polygon([(0, 1080), (0, 800), (280, 1080)])
 
 IP = "127.0.0.1"
 CONFIG_PORT = 3000
@@ -83,7 +83,8 @@ def game_tick(capture, game):
     try:
         game.update(capture)
 
-        if len(game.neg_core_positions) <= 0:
+        if len(game.get_cores_not_in_goal(game.neg_core_positions)) <= 0:
+            print("SKIPPED")
             return
 
         for robot in game.team_robots:
