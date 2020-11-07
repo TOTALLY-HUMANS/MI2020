@@ -39,7 +39,7 @@ class Robot:
                         MAX_SPEED * speed_percentage)
 
     def stop(self):
-        self._send_move(self, 0, 0)
+        self._send_move(0, 0)
 
     def _send_move(self, left, right):
         self.socket.sendto(
