@@ -7,8 +7,14 @@ from game import Game
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
+#GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
+#GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
+
 GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
 GOAL_LEFT = Polygon([(0, 1080), (0, 800), (280, 1080)])
+
+#VIDEO_FEED = "rtp://224.1.1.1:5200"
+VIDEO_FEED = "http://localhost:8080"
 
 IP = "127.0.0.1"
 CONFIG_PORT = 3000
@@ -16,6 +22,9 @@ ROBOT_PORT_1 = 3001
 ROBOT_PORT_2 = 3002
 ROBOT_PORT_3 = 3003
 ROBOT_PORT_4 = 3004
+
+#ROBO_SPEED = 0.75
+ROBO_SPEED = 0.3
 
 def reset(sock):
     sock.sendto(bytes("reset", "utf-8"), (IP, CONFIG_PORT))
@@ -45,14 +54,14 @@ def select_core_logic(game, robot, ball_coords):
 
 
 def unstuck_logic(robot, game):
-    if game.tick % 5 == 0:
-        if robot.prev_pos is not None and robot.position.distance(robot.prev_pos) < 20:
+    if game.tick % 10 == 0:
+        if robot.prev_pos is not None and robot.position.distance(robot.prev_pos) < 10:
             robot.prev_pos = None
         else:
             robot.prev_pos = robot.position
 
     if robot.prev_pos == None:
-        robot.back(0.3)
+        robot.tight_right(ROBO_SPEED)
         return True
 
     return False
@@ -68,15 +77,15 @@ def robot_simple_logic(robot, game):
         return
 
     if game.goal_own.distance(robot.position) < 40:
-        robot.drive_to_point(game.goal_opponent.centroid, 0.25)
+        robot.drive_to_point(game.goal_opponent.centroid, ROBO_SPEED)
         return
     if game.goal_opponent.distance(robot.position) < 40:
-        robot.drive_to_point(game.goal_own.centroid, 0.25)
+        robot.drive_to_point(game.goal_own.centroid, ROBO_SPEED)
 
     if dist_to_ball < 90:
-        robot.drive_to_point_smooth(game.goal_opponent.centroid, 0.25)
+        robot.drive_to_point_smooth(game.goal_opponent.centroid, ROBO_SPEED)
     else:
-        robot.drive_to_point(target_ball, 0.25)
+        robot.drive_to_point(target_ball, ROBO_SPEED)
 
 
 def game_tick(capture, game):
@@ -94,7 +103,7 @@ def game_tick(capture, game):
 
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    capture = cv2.VideoCapture("http://localhost:8080")
+    capture = cv2.VideoCapture(VIDEO_FEED)
     capture.set(cv2.CAP_PROP_BUFFERSIZE, 2)
     reset(sock)
 
