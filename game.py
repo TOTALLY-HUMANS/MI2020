@@ -5,6 +5,12 @@ from shapely.geometry import Point
 from ball import Balls
 
 
+import numpy as np
+from matplotlib import pyplot as plt
+
+#plt.axis([-50,50,0,10000])
+
+
 class Game:
     def __init__(self, robots, goal_own, goal_opponent):
         self.neg_core_positions = []
@@ -18,21 +24,29 @@ class Game:
 
         self.tick = 0
 
+
+
     def update(self, capture):
         robot_frame_data = get_robot_positions(capture)
         for robot in self.team_robots:
             robot.update(robot_frame_data)
 
         core_positions = get_core_positions(capture)
-        print(core_positions)
+
+        #print(core_positions)
         self.neg_core_positions = array_coords_to_points(core_positions[0])
         #self.pos_core_positions = array_coords_to_points(core_positions[1])
         self.pos_core_positions = []
         self.tick += 1
 
-        self.balls.update(capture) # tries to maintain same index for same ball
-        self.balls.get_neg_balls()
-        self.balls.get_pos_balls()
+        if(self.tick > 10):
+            self.balls.update(capture) # tries to maintain same index for same ball
+            self.balls.get_neg_balls()
+            #self.balls.get_pos_balls()
+        for b in self.balls.get_neg_balls():
+            print("ball idx: ", b.get_index(), " ball pos: ", b.get_pos())
+
+
 
     def get_cores_not_in_goal(self, ecore_positions):
         filtered = []

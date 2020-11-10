@@ -7,6 +7,8 @@ from game import Game
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
+
+
 #GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
 #GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
 
@@ -72,6 +74,7 @@ def robot_simple_logic(robot, game):
     target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
     robot.target_core = target_ball
 
+
     is_stuck = unstuck_logic(robot, game)
     if is_stuck:
         return
@@ -99,7 +102,8 @@ def game_tick(capture, game):
         for robot in game.team_robots:
                 robot_simple_logic(robot, game)
     except Exception as e:
-        print(e, e.with_traceback)
+        #print(e, e.with_traceback)
+        pass
 
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

@@ -37,38 +37,46 @@ class Balls:
         core_positions = get_core_positions(capture)
         neg_core_positions = array_coords_to_points(core_positions[0])
         pos_core_positions = array_coords_to_points(core_positions[1])
-        if(not self.inited):
+
+        #print(self.inited)
+        #print("neg_balls", len(self.neg_balls))
+        #print("pos_balls", len(self.pos_balls))
+        #print(len(neg_core_positions))
+        if not self.inited:
+
             for idx,p in enumerate(neg_core_positions):
-                self.neg_balls.append(p, idx)
+                self.neg_balls.append(Ball(p, idx))
             for idx,p in enumerate(pos_core_positions):
-                self.pos_balls.append(p, idx)
+                self.pos_balls.append(Ball(p, idx))
             self.inited = True
         else:
             for p in neg_core_positions:
                 self.associate_with_nearest(p, -1)
+
             for p in pos_core_positions:
                 self.associate_with_nearest(p, 1)
 
     def associate_with_nearest(self, point, etype):
-        if(etype == 1):
-            idx = self.nearest_idx(point, self.neg_balls)
-            self.neg_balls[idx].update_pos(point)
-        elif(etype == -1):
+        if etype == 1:
             idx = self.nearest_idx(point, self.pos_balls)
             self.pos_balls[idx].update_pos(point)
+        elif etype == -1:
+            idx = self.nearest_idx(point, self.neg_balls)
+            self.neg_balls[idx].update_pos(point)
 
     def nearest_idx(self, point, ball_list):
         dist = 2000000
         idx = -1
+        print(len(ball_list))
         for i,b in enumerate(ball_list):
             tmp_dist = point.distance(b.get_pos())
             if tmp_dist < dist:
                 dist = tmp_dist
                 idx = i
-        return i
+        return idx
 
     def get_neg_balls(self, get_all=True):
-        if(get_all):
+        if get_all :
             return self.neg_balls
         else:
             balls = []
@@ -78,7 +86,7 @@ class Balls:
             return balls
 
     def get_pos_balls(self, get_all=True):
-        if(get_all):
+        if get_all:
             return self.pos_balls
         else:
             balls = []
