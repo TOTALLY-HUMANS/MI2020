@@ -67,7 +67,7 @@ class Balls:
     def nearest_idx(self, point, ball_list):
         dist = 2000000
         idx = -1
-        print(len(ball_list))
+        #print(len(ball_list))
         for i,b in enumerate(ball_list):
             tmp_dist = point.distance(b.get_pos())
             if tmp_dist < dist:

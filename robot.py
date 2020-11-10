@@ -15,6 +15,9 @@ class Robot:
         self.position = Point(0.0, 0.0)
         self.angle = 0.0
         self.target_core = Point(2000, 2000)
+        self.target_core_idx = 0
+        self.target_core_type = -1
+        self.state = 0 # 0=idle, 1=goto_approach, 2=goto_behind, 3=ram_goal
 
     def forward(self, speed_percentage):
         self._send_move(MAX_SPEED * speed_percentage, MAX_SPEED * speed_percentage)

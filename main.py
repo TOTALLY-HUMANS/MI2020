@@ -6,14 +6,14 @@ from robot import Robot
 from game import Game
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
+from game import points_side_behind
 
 
+GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
+GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
 
-#GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
-#GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
-
-GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
-GOAL_LEFT = Polygon([(0, 1080), (0, 800), (280, 1080)])
+#GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
+#GOAL_LEFT = Polygon([(0, 1080), (0, 800), (280, 1080)])
 
 #VIDEO_FEED = "rtp://224.1.1.1:5200"
 VIDEO_FEED = "http://localhost:8080"
@@ -90,6 +90,60 @@ def robot_simple_logic(robot, game):
     else:
         robot.drive_to_point(target_ball, ROBO_SPEED)
 
+def idle_state(robot, game):
+    robot.stop()
+    print("idle state")
+    # select new goal ball
+    # change state to goto_approach
+    if game.tick % 10 == 0:
+        robot.state = 1
+def goto_approach_state(robot, game):
+    #set controls etc to correspond to this state
+    #drive to approach point of current goal ball
+    print("approach state")
+
+    print(game.tick)
+    if game.tick % 60 == 0:
+        target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
+
+        side_behind_point =  points_side_behind(game.goal_own.centroid, target_ball, dists=[50,50,50])
+        robot.target_core = target_ball#side_behind_point[1]
+        print("target updated")
+
+    robot.drive_to_point(robot.target_core, ROBO_SPEED)
+    print("robot pos: ", robot.position)
+    print("target: ",robot.target_core)
+    if robot.position.distance(robot.target_core) < 50:
+        robot.state = 0
+
+    #if we are close enough, change to goto_behind_state
+    
+def goto_behind_state(robot, game):
+    #drive to behind point
+
+    #if we are close enough, change to ram_goal_state
+    pass
+
+def ram_goal_state(robot, game):
+    #drive full speed to goal pushing the ball with us
+
+    #if we are close enough goal, change to idle state
+    pass
+
+
+def new_robot_logic(robot, game):
+    #get balls
+    state = robot.state
+
+    states = {  0 : idle_state,
+                1 : goto_approach_state,
+                2 : goto_behind_state,
+                3 : ram_goal_state,}
+
+    states[robot.state](robot, game)
+
+
+
 
 def game_tick(capture, game):
     try:
@@ -100,7 +154,9 @@ def game_tick(capture, game):
             return
 
         for robot in game.team_robots:
-                robot_simple_logic(robot, game)
+                #robot_simple_logic(robot, game)
+                new_robot_logic(robot, game)
+                break
     except Exception as e:
         #print(e, e.with_traceback)
         pass

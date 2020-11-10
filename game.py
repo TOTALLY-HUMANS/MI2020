@@ -8,7 +8,6 @@ from ball import Balls
 import numpy as np
 from matplotlib import pyplot as plt
 
-#plt.axis([-50,50,0,10000])
 
 
 class Game:
@@ -43,8 +42,8 @@ class Game:
             self.balls.update(capture) # tries to maintain same index for same ball
             self.balls.get_neg_balls()
             #self.balls.get_pos_balls()
-        for b in self.balls.get_neg_balls():
-            print("ball idx: ", b.get_index(), " ball pos: ", b.get_pos())
+        #for b in self.balls.get_neg_balls():
+        #    print("ball idx: ", b.get_index(), " ball pos: ", b.get_pos())
 
 
 
