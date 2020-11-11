@@ -9,11 +9,11 @@ from shapely.geometry.polygon import Polygon
 from game import points_side_behind
 
 
-GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
-GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
+#GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
+#GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
 
-#GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
-#GOAL_LEFT = Polygon([(0, 1080), (0, 800), (280, 1080)])
+GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
+GOAL_LEFT = Polygon([(0, 1080), (0, 800), (280, 1080)])
 
 #VIDEO_FEED = "rtp://224.1.1.1:5200"
 VIDEO_FEED = "http://localhost:8080"
@@ -27,6 +27,9 @@ ROBOT_PORT_4 = 3004
 
 #ROBO_SPEED = 0.75
 ROBO_SPEED = 0.3
+
+prev_tick = 0
+
 
 def reset(sock):
     sock.sendto(bytes("reset", "utf-8"), (IP, CONFIG_PORT))
@@ -92,43 +95,67 @@ def robot_simple_logic(robot, game):
 
 def idle_state(robot, game):
     robot.stop()
+    robot.prev_state = 0
+
     print("idle state")
     # select new goal ball
     # change state to goto_approach
     if game.tick % 10 == 0:
         robot.state = 1
+
+
 def goto_approach_state(robot, game):
     #set controls etc to correspond to this state
     #drive to approach point of current goal ball
     print("approach state")
 
-    print(game.tick)
-    if game.tick % 60 == 0:
-        target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
+    global prev_tick
 
-        side_behind_point =  points_side_behind(game.goal_own.centroid, target_ball, dists=[50,50,50])
-        robot.target_core = target_ball#side_behind_point[1]
+
+    print("tick: ",game.tick)
+    print("tick diff: ",game.tick - prev_tick)
+    print("tick condition: ",(game.tick - prev_tick) > 10)
+    if (game.tick - prev_tick) > 10 and robot.prev_state == 0:
+        prev_tick = game.tick
+        target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
+        print("selected: ", target_ball, " dist2selected: ",dist_to_ball)
+        #side_behind_point =  points_side_behind(game.goal_own.centroid, target_ball, dists=[50,50,50])
+        robot.target_core = game.get_cores_not_in_goal(game.neg_core_positions)[2] # target_ball #side_behind_point[1]
+        for p in game.get_cores_not_in_goal(game.neg_core_positions):
+            print(p)
         print("target updated")
 
     robot.drive_to_point(robot.target_core, ROBO_SPEED)
     print("robot pos: ", robot.position)
     print("target: ",robot.target_core)
+
+    robot.prev_state = 1
+
     if robot.position.distance(robot.target_core) < 50:
-        robot.state = 0
+        robot.state = 3
+
 
     #if we are close enough, change to goto_behind_state
     
 def goto_behind_state(robot, game):
     #drive to behind point
+    print("goto_behind state")
 
     #if we are close enough, change to ram_goal_state
     pass
 
 def ram_goal_state(robot, game):
     #drive full speed to goal pushing the ball with us
+    print("ram state")
+    print("robot pos: ", robot.position)
+    print("target: ",robot.target_core)
+    robot.target_core = game.goal_own.centroid
+    robot.drive_to_point(robot.target_core, ROBO_SPEED)
 
     #if we are close enough goal, change to idle state
-    pass
+    if robot.position.distance(robot.target_core) < 80:
+        robot.state = 0
+    
 
 
 def new_robot_logic(robot, game):
