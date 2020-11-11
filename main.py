@@ -119,20 +119,21 @@ def goto_approach_state(robot, game):
         prev_tick = game.tick
         target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
         print("selected: ", target_ball, " dist2selected: ",dist_to_ball)
-        #side_behind_point =  points_side_behind(game.goal_own.centroid, target_ball, dists=[50,50,50])
-        robot.target_core = game.get_cores_not_in_goal(game.neg_core_positions)[2] # target_ball #side_behind_point[1]
+        robot.target_core = target_ball # target_ball #side_behind_point[1]
         for p in game.get_cores_not_in_goal(game.neg_core_positions):
             print(p)
         print("target updated")
 
-    robot.drive_to_point(robot.target_core, ROBO_SPEED)
+    side_behind_point =  points_side_behind(game.goal_own.centroid, robot.target_core, dists=[150,150,150])
+    robot.drive_to_point(side_behind_point[1], ROBO_SPEED)
     print("robot pos: ", robot.position)
     print("target: ",robot.target_core)
+    print("approach: ", side_behind_point[1])
 
     robot.prev_state = 1
-
-    if robot.position.distance(robot.target_core) < 50:
-        robot.state = 3
+    print("dist to target: ", robot.position.distance(side_behind_point[1]))
+    if robot.position.distance(side_behind_point[1]) < 50:
+        robot.state = 2
 
 
     #if we are close enough, change to goto_behind_state
@@ -141,8 +142,21 @@ def goto_behind_state(robot, game):
     #drive to behind point
     print("goto_behind state")
 
+
+    side_behind_point =  points_side_behind(game.goal_own.centroid, robot.target_core, dists=[150,150,150])
+    robot.drive_to_point(side_behind_point[0], ROBO_SPEED)
+    print("robot pos: ", robot.position)
+    print("target: ",robot.target_core)
+    print("behind: ", side_behind_point[0])
+
+    robot.prev_state = 2
+
+    if robot.position.distance(side_behind_point[0]) < 50:
+        robot.state = 3
+
+    
     #if we are close enough, change to ram_goal_state
-    pass
+    
 
 def ram_goal_state(robot, game):
     #drive full speed to goal pushing the ball with us
