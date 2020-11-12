@@ -71,6 +71,15 @@ class Robot:
         else:
             self.forward(speed)
 
+    def jam_turn(self, target, speed_percent):
+        speed = np.clip(speed_percent, 0.0, 1.0)
+        angle = self.get_angle_to_point(target, self.position, self.angle)
+        if angle > 0:
+            self.tight_left(speed)
+        elif angle < 0.:
+            self.tight_right(speed)
+   
+
     def drive_to_point_smooth(self, target, speed_percent):
         speed = np.clip(speed_percent, 0.0, 1.0)
         angle = self.get_angle_to_point(target, self.position, self.angle)

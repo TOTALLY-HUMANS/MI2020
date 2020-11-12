@@ -57,7 +57,7 @@ def select_core_logic(game, robot, ball_coords):
 
 def unstuck_logic(robot, game):
     #if game.tick % 10 == 0:
-    if (game.tick - robot.prev_tick) > 25:
+    if (game.tick - robot.prev_tick) > 15:
         robot.prev_tick = game.tick
         if robot.prev_pos is not None and robot.position.distance(robot.prev_pos) < 10:
             robot.prev_pos = None
@@ -65,7 +65,10 @@ def unstuck_logic(robot, game):
             robot.prev_pos = robot.position
 
     if robot.prev_pos == None:
-        robot.tight_right(ROBO_SPEED)
+        print("trying to unstuck")
+
+        #robot.tight_right(ROBO_SPEED)
+        robot.jam_turn(robot.goal, ROBO_SPEED)
         return True
 
     return False
@@ -113,9 +116,14 @@ def robot_simple_logic(robot, game):
         return
     if game.goal_opponent.distance(robot.position) < 40:
         robot.drive_to_point(game.goal_own.centroid, ROBO_SPEED)
+        return
 
     if dist_to_ball < 90:
         robot.drive_to_point_smooth(robot.goal, ROBO_SPEED)
+    
+    elif dist_to_ball > 150:
+        robot.drive_to_point(target_ball, ROBO_SPEED*0.8)
+
     else:
         robot.drive_to_point(target_ball, ROBO_SPEED)
 
@@ -324,6 +332,10 @@ def main():
 
     r3.target_core_type = -1
     r4.target_core_type = 1
+
+
+    r2.target_core_type = -1
+    r1.target_core_type = 1
 
     game_1 = Game([r1, r2], GOAL_LEFT, GOAL_RIGHT)
     game_2 = Game([r3, r4], GOAL_RIGHT, GOAL_LEFT)
