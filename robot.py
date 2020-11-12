@@ -21,6 +21,7 @@ class Robot:
         self.prev_state = 0
         self.prev_tick = -100
         self.goal = Point(500,500)
+        self.unstuck_counter = -1
 
     def forward(self, speed_percentage):
         self._send_move(MAX_SPEED * speed_percentage, MAX_SPEED * speed_percentage)
