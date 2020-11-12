@@ -121,8 +121,8 @@ def robot_simple_logic(robot, game):
     if dist_to_ball < 90:
         robot.drive_to_point_smooth(robot.goal, ROBO_SPEED)
     
-    elif dist_to_ball > 150:
-        robot.drive_to_point(target_ball, ROBO_SPEED*0.8)
+    elif dist_to_ball < 150:
+        robot.drive_to_point(target_ball, ROBO_SPEED*0.7)
 
     else:
         robot.drive_to_point(target_ball, ROBO_SPEED)
