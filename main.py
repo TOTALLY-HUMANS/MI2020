@@ -300,7 +300,7 @@ def game_tick(capture, game):
     try:
         game.update(capture)
 
-        if len(game.get_cores_not_in_goal(game.neg_core_positions)) <= 0:
+        if len(game.get_cores_not_in_goal(game.neg_core_positions)) <= 0 and len(game.get_cores_not_in_goal(game.pos_core_positions)) <= 0:
             print("SKIPPED")
             return
 
