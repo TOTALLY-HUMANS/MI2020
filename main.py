@@ -58,8 +58,9 @@ def select_core_logic(game, robot, ball_coords):
 def unstuck_logic(robot, game):
     if (game.tick - robot.prev_tick) > 15:
         robot.prev_tick = game.tick
-        if robot.unstuck_counter < 0 and robot.position.distance(robot.prev_pos) < 10:
-            robot.unstuck_counter = 3
+        if robot.unstuck_counter < 0 and robot.position.distance(robot.prev_pos) < 10 and robot.unstuck_cooldown <= game.tick:
+            robot.unstuck_counter = 2
+            robot.unstuck_cooldown = game.tick + 10
 
     if robot.unstuck_counter >= 0:
         print("trying to unstuck")
