@@ -56,7 +56,9 @@ def select_core_logic(game, robot, ball_coords):
 
 
 def unstuck_logic(robot, game):
-    if game.tick % 10 == 0:
+    #if game.tick % 10 == 0:
+    if (game.tick - robot.prev_tick) > 25:
+        robot.prev_tick = game.tick
         if robot.prev_pos is not None and robot.position.distance(robot.prev_pos) < 10:
             robot.prev_pos = None
         else:
@@ -82,8 +84,24 @@ def is_stuck(robot, game):
 
 def robot_simple_logic(robot, game):
     robot.target_core = None
-    target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
+
+    if robot.target_core_type == -1:
+        target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
+        robot.goal = game.goal_opponent.centroid
+
+    elif robot.target_core_type == 1:
+        target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.pos_core_positions))
+        robot.goal = game.goal_own.centroid
+
+
+    if target_ball == None:
+        robot.target_core_type = -1*robot.target_core_type
+        return
+
+    
+    #target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
     robot.target_core = target_ball
+
 
 
     is_stuck = unstuck_logic(robot, game)
@@ -97,7 +115,7 @@ def robot_simple_logic(robot, game):
         robot.drive_to_point(game.goal_own.centroid, ROBO_SPEED)
 
     if dist_to_ball < 90:
-        robot.drive_to_point_smooth(game.goal_opponent.centroid, ROBO_SPEED)
+        robot.drive_to_point_smooth(robot.goal, ROBO_SPEED)
     else:
         robot.drive_to_point(target_ball, ROBO_SPEED)
 
@@ -301,8 +319,8 @@ def main():
     r2 = Robot(sock, IP, ROBOT_PORT_2, "RC-1262 Scorch", 3)
 
     # Our robots
-    r3 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 8)
-    r4 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 9)
+    r3 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 0)
+    r4 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 1)
 
     r3.target_core_type = -1
     r4.target_core_type = 1

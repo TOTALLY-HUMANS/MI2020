@@ -20,6 +20,7 @@ class Robot:
         self.state = 1 # 0=idle, 1=goto_approach, 2=goto_behind, 3=ram_goal, 4=jammed
         self.prev_state = 0
         self.prev_tick = -100
+        self.goal = Point(500,500)
 
     def forward(self, speed_percentage):
         self._send_move(MAX_SPEED * speed_percentage, MAX_SPEED * speed_percentage)
