@@ -56,21 +56,18 @@ def select_core_logic(game, robot, ball_coords):
 
 
 def unstuck_logic(robot, game):
-    #if game.tick % 10 == 0:
     if (game.tick - robot.prev_tick) > 15:
         robot.prev_tick = game.tick
-        if robot.prev_pos is not None and robot.position.distance(robot.prev_pos) < 10:
-            robot.prev_pos = None
-        else:
-            robot.prev_pos = robot.position
+        if robot.unstuck_counter < 0 and robot.position.distance(robot.prev_pos) < 10:
+            robot.unstuck_counter = 3
 
-    if robot.prev_pos == None:
+    if robot.unstuck_counter >= 0:
         print("trying to unstuck")
-        robot.prev_pos = robot.position
-        #robot.tight_right(ROBO_SPEED)
         robot.jam_turn(robot.goal, ROBO_SPEED)
+        robot.unstuck_counter -= 1
         return True
 
+    robot.prev_pos = robot.position
     return False
 
 def is_stuck(robot, game):
@@ -118,7 +115,7 @@ def robot_simple_logic(robot, game):
         robot.drive_to_point(game.goal_own.centroid, ROBO_SPEED)
         return
 
-    if dist_to_ball < 120:
+    if dist_to_ball < 100:
         robot.drive_to_point_smooth(robot.goal, ROBO_SPEED)
     
     elif dist_to_ball < 150:
@@ -327,8 +324,8 @@ def main():
     r2 = Robot(sock, IP, ROBOT_PORT_2, "RC-1262 Scorch", 3)
 
     # Our robots
-    r3 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 0)
-    r4 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 1)
+    r3 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 8)
+    r4 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 9)
 
     r3.target_core_type = -1
     r4.target_core_type = 1
