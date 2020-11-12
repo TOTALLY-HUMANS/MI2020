@@ -66,7 +66,7 @@ def unstuck_logic(robot, game):
 
     if robot.prev_pos == None:
         print("trying to unstuck")
-
+        robot.prev_pos = robot.position
         #robot.tight_right(ROBO_SPEED)
         robot.jam_turn(robot.goal, ROBO_SPEED)
         return True
@@ -118,7 +118,7 @@ def robot_simple_logic(robot, game):
         robot.drive_to_point(game.goal_own.centroid, ROBO_SPEED)
         return
 
-    if dist_to_ball < 90:
+    if dist_to_ball < 120:
         robot.drive_to_point_smooth(robot.goal, ROBO_SPEED)
     
     elif dist_to_ball < 150:
