@@ -9,12 +9,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-
 class Game:
     def __init__(self, robots, goal_own, goal_opponent):
         self.neg_core_positions = []
         self.pos_core_positions = []
-        self.balls = Balls()
+        #self.balls = Balls()
 
         self.team_robots = robots
 
@@ -34,13 +33,13 @@ class Game:
 
         #print(core_positions)
         self.neg_core_positions = array_coords_to_points(core_positions[0])
-        #self.pos_core_positions = array_coords_to_points(core_positions[1])
-        self.pos_core_positions = []
+        self.pos_core_positions = array_coords_to_points(core_positions[1])
+        #self.pos_core_positions = []
         self.tick += 1
 
-        if(self.tick > 10):
-            self.balls.update(capture) # tries to maintain same index for same ball
-            self.balls.get_neg_balls()
+        #if(self.tick > 10):
+        #    self.balls.update(capture) # tries to maintain same index for same ball
+        #    self.balls.get_neg_balls()
             #self.balls.get_pos_balls()
         #for b in self.balls.get_neg_balls():
         #    print("ball idx: ", b.get_index(), " ball pos: ", b.get_pos())
@@ -65,18 +64,3 @@ def array_coords_to_points(array_coords):
     for coord in array_coords:
         points.append(Point(coord[0], coord[1]))
     return points
-
-#computes unit vector between start&end
-#uses this unit vector and its normal to
-#compute points behind and both sides of the end
-#start and end are xy-point, dists is list in form [dist_behind, dist_side1, dist_side2]
-#return list of xy-points
-def points_side_behind(start, end, dists=[10,10,10]):
-    dist = start.distance(end)
-    vec = [ (end.x - start.x)/dist, (end.y - start.y)/dist ]
-    
-    behind = Point( end.x + vec[0]*dists[0], end.y + vec[1]*dists[0] )
-    side1 = Point( end.x - vec[1]*dists[1], end.y + vec[0]*dists[1] )
-    side2 = Point( end.x + vec[1]*dists[2], end.y - vec[0]*dists[2] )
-    
-    return [behind, side1, side2]

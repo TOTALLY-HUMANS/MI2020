@@ -17,8 +17,9 @@ class Robot:
         self.target_core = Point(2000, 2000)
         self.target_core_idx = 0
         self.target_core_type = -1
-        self.state = 0 # 0=idle, 1=goto_approach, 2=goto_behind, 3=ram_goal
+        self.state = 1 # 0=idle, 1=goto_approach, 2=goto_behind, 3=ram_goal, 4=jammed
         self.prev_state = 0
+        self.prev_tick = -100
 
     def forward(self, speed_percentage):
         self._send_move(MAX_SPEED * speed_percentage, MAX_SPEED * speed_percentage)
@@ -59,12 +60,12 @@ class Robot:
         speed = np.clip(speed_percent, 0.0, 1.0)
         angle = self.get_angle_to_point(target, self.position, self.angle)
         if angle > 1.:
-            self.tight_left(speed)
+            self.tight_left(speed * 0.75)
         elif angle < -1.:
-            self.tight_right(speed)
-        elif angle > 0.30:
+            self.tight_right(speed * 0.75)
+        elif angle > 0.35:
             self.left(speed)
-        elif angle < -0.30:
+        elif angle < -0.35:
             self.right(speed)
         else:
             self.forward(speed)
