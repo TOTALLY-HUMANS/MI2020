@@ -45,9 +45,15 @@ def select_core_logic(game, robot, ball_coords):
 
     closest_ball_point = None
     closest_dist = 10000000
+    closest_angle = 10000000
+    best_score = -100000
     for point in ball_coords:
         dist = point.distance(target_pos)
-        if dist < closest_dist and point not in targeted:
+        angle = abs(robot.get_angle_to_point(point, robot.position, robot.angle))
+        score = closest_ball_objective_funciton(dist, angle)
+        if score > best_score and point not in targeted:
+            best_score = score
+            closest_angle = angle
             closest_dist = dist
             closest_ball_point = point
 
@@ -55,8 +61,16 @@ def select_core_logic(game, robot, ball_coords):
         closest_ball_point = ball_coords[0]
         closest_dist = ball_coords[0].distance(target_pos)
         
+    dist_scaled = -(closest_dist / 1080.)
+    angle_scaled = -closest_angle / 3.14
+    print(2 * dist_scaled, angle_scaled)
+
     return closest_ball_point, closest_dist
 
+def closest_ball_objective_funciton(dist, angle):
+    dist_scaled = -(dist / 1080.)
+    angle_scaled = -angle / 3.14
+    return 2 * dist_scaled + angle_scaled
 
 def unstuck_logic(robot, game):
     if (game.tick - robot.prev_unstuck_tick) > 15:
@@ -340,7 +354,7 @@ def main():
     r1.target_core_type = 1
 
     game_1 = Game([r1, r2], GOAL_LEFT, GOAL_LEFT_CORNER, GOAL_RIGHT, GOAL_RIGHT_CORNER)
-    game_2 = Game([r3, r4], GOAL_RIGHT, GOAL_RIGHT_CORNER, GOAL_LEFT, GOAL_LEFT_CORNER)
+    game_2 = Game([r3], GOAL_RIGHT, GOAL_RIGHT_CORNER, GOAL_LEFT, GOAL_LEFT_CORNER)
 
     while True:
         #game_tick_new(capture, game_1)

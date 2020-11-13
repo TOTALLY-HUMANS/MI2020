@@ -64,9 +64,9 @@ class Robot:
         speed = np.clip(speed_percent, 0.0, 1.0)
         angle = self.get_angle_to_point(target, self.position, self.angle)
         if angle > 1.:
-            self.tight_left(speed * 0.75)
+            self.tight_left(speed * 0.70)
         elif angle < -1.:
-            self.tight_right(speed * 0.75)
+            self.tight_right(speed * 0.70)
         elif angle > 0.35:
             self.left(speed)
         elif angle < -0.35:
