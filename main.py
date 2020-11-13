@@ -7,13 +7,13 @@ from game import Game
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
-ROBO_SPEED = 0.6
+ROBO_SPEED = 0.45
 #ROBO_SPEED = 0.3
 
-GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
-GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
-GOAL_RIGHT_CORNER = Point(0, 0)
-GOAL_LEFT_CORNER = Point(1080, 1080)
+#GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
+#GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
+#GOAL_RIGHT_CORNER = Point(0, 0)
+#GOAL_LEFT_CORNER = Point(1080, 1080)
 
 GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
 GOAL_RIGHT_CORNER = Point(1080, 0)
@@ -69,38 +69,27 @@ def select_core_logic(game, robot, ball_coords):
 def closest_ball_objective_funciton(dist, angle):
     dist_scaled = -(dist / 1080.)
     angle_scaled = -angle / 3.14
-    return 2 * dist_scaled + angle_scaled
+    return 4 * dist_scaled + angle_scaled
 
 def unstuck_logic(robot, game):
-    if (game.tick - robot.prev_unstuck_tick) > 15:
+    if (game.tick - robot.prev_unstuck_tick) > 25:
         robot.prev_unstuck_tick = game.tick
         if robot.unstuck_counter < 0 and robot.position.distance(robot.prev_pos) < 10 and robot.unstuck_cooldown <= game.tick:
-            robot.unstuck_counter = 2
-            robot.unstuck_cooldown = game.tick + 20
+            robot.unstuck_counter = 3
+            robot.unstuck_cooldown = game.tick + 100
 
     if robot.unstuck_counter >= 0:
         print("trying to unstuck")
-        robot.jam_turn(robot.goal, ROBO_SPEED)
+        robot.jam_turn(robot.goal, 0.7)
         robot.unstuck_counter -= 1
         return True
 
     robot.prev_pos = robot.position
     return False
 
-def is_stuck(robot, game):
-
-    if robot.prev_pos is not None and robot.position.distance(robot.prev_pos) < 10:
-        robot.prev_pos = None
-    else:
-        robot.prev_pos = robot.position
-            
-    if robot.prev_pos == None:
-        return True
-
-    return False
-
 def robot_simple_logic(robot, game):
     robot.target_core = None
+    target_ball = None
 
     if robot.target_core_type == -1:
         target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
@@ -109,49 +98,40 @@ def robot_simple_logic(robot, game):
     elif robot.target_core_type == 1:
         target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.pos_core_positions))
         robot.goal = game.goal_own_corner
-
-
-    if target_ball == None and game.tick > 15:
-        robot.target_core_type = -1*robot.target_core_type
-        return
-
     
-    #target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
-    robot.target_core = target_ball
+    # ENABLE?
+    #robot.target_core = target_ball
 
-    print(robot.target_core, robot.target_core_type)
+    #print(target_ball, robot.target_core_type)
 
+    if target_ball == None:
+        robot.none_counter -= 1
+    else:
+        robot.none_counter = 35
+    
+    if robot.none_counter < 0:
+        robot.target_core_type * -1
+        robot.none_counter = 10000000000
+        print("SWITCH", robot.idx)
 
     is_stuck = unstuck_logic(robot, game)
     if is_stuck:
         return
 
     if game.goal_own.distance(robot.position) < 40:
-        robot.drive_to_point(game.goal_opponent.centroid, ROBO_SPEED)
+        robot.drive_to_point(game.goal_opponent.centroid, ROBO_SPEED, 0.7)
         return
     if game.goal_opponent.distance(robot.position) < 40:
-        robot.drive_to_point(game.goal_own.centroid, ROBO_SPEED)
+        robot.drive_to_point(game.goal_own.centroid, ROBO_SPEED, 0.7)
         return
 
     if dist_to_ball < 80:
-        robot.drive_to_point(robot.goal, ROBO_SPEED)
+        robot.drive_to_point_smooth(robot.goal, ROBO_SPEED)
     
-    elif dist_to_ball < 170:
-        robot.drive_to_point(target_ball, ROBO_SPEED * 0.75)
+    elif dist_to_ball < 250:
+        robot.drive_to_point(target_ball, ROBO_SPEED * 0.75, 0.6)
     else:
         goto_approach_state(robot, game)
-
-def idle_state(robot, game):
-    robot.stop()
-    robot.prev_state = 0
-
-    # select new goal ball
-    # change state to goto_approach
-    if game.tick % 5 == 0:
-        print("approach state")
-
-        robot.state = 1
-
 
 def goto_approach_state(robot, game):
     #set controls etc to correspond to this state
@@ -159,7 +139,7 @@ def goto_approach_state(robot, game):
 
     #print("approach")
 
-    if (game.tick - robot.prev_tick) > 10 or robot.prev_state == 0:
+    if (game.tick - robot.prev_tick) > 10 or robot.target_core == None:
         robot.prev_tick = game.tick
         if robot.target_core_type == -1:
             target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
@@ -179,85 +159,8 @@ def goto_approach_state(robot, game):
     if len(sides) > 0:
         target = sides[0]
         
-    #selected_driving_point = select_point_next_to_core(robot.target_core, target)
-    robot.drive_to_point(target, ROBO_SPEED)
-    # print("robot pos: ", robot.position)
-    # print("target: ",robot.target_core)
-    # print("approach: ", target)
-    # print("dist to target: ", robot.position.distance(target))
+    robot.drive_to_point(target, ROBO_SPEED, 0.7)
 
-
-    robot.prev_state = 1
-    if robot.position.distance(target) < 50:
-        print("goto_behind state")
-        robot.state = 2
-
-
-
-    
-
-    #if we are close enough, change to goto_behind_state
-
-def select_point_next_to_core(ecore_position, points_next_to_ecore):
-    filtered = []
-    for point in points_next_to_ecore:
-        point_in_game = GAME_AREA.contains(point) 
-        if not point_in_game:
-            filtered.append(point)
-        else:
-            #print("REMOVED", point)
-            pass
-
-    if not filtered:
-        ecore_position
-
-    return filtered[0]
-    
-def goto_behind_state(robot, game):
-    #drive to behind point
-
-    if robot.target_core_type == 1:
-        behind, _, _ = points_side_behind(game.goal_own.centroid, robot.target_core, dists=[150,150,150])
-    elif robot.target_core_type == -1:
-        behind, _, _ = points_side_behind(game.goal_opponent.centroid, robot.target_core, dists=[150,150,150])
-
-    robot.drive_to_point(behind, ROBO_SPEED)
-    # print("robot pos: ", robot.position)
-    # print("target: ", robot.target_core)
-    # print("behind: ", behind)
-
-    robot.prev_state = 2
-
-    if robot.position.distance(behind) < 80:
-        print("ram state")
-        robot.state = 3
-
-    
-
-
-def ram_goal_state(robot, game):
-    #drive full speed to goal pushing the ball with us
-    if robot.target_core_type == 1:
-        robot.target_core = game.goal_own.centroid
-    elif robot.target_core_type == -1:
-        robot.target_core = game.goal_opponent.centroid
-
-    robot.drive_to_point(robot.target_core, ROBO_SPEED)
-
-    #if we are close enough goal, change to idle state
-    if robot.position.distance(robot.target_core) < 100:
-        robot.state = 0
-
-
-def jammed(robot, game):
-    #print("jammed state")
-    #do something
-    robot.tight_right(ROBO_SPEED)
-
-    #go to idle
-    robot.state = 0
-    robot.prev_state = 4
-    
     
 #computes unit vector between start&end
 #uses this unit vector and its normal to
@@ -281,37 +184,6 @@ def points_side_behind(start, end, dists=[10, 10, 10]):
 
     return behind, filtered_sides, end
 
-
-states = {0: idle_state,
-          1: goto_approach_state,
-          2: goto_behind_state,
-          3: ram_goal_state, 
-          4: jammed,}
-
-def new_robot_logic(robot, game):
-    #check if stuck
-    if (game.tick - robot.prev_tick) > 25 and is_stuck(robot, game) and robot.state != 0:
-        robot.prev_tick = game.tick
-        robot.state = 4
-        
-    states[robot.state](robot, game)
-
-
-def game_tick_new(capture, game):
-    try:
-        game.update(capture)
-
-        if len(game.get_cores_not_in_goal(game.neg_core_positions)) <= 0:
-            print("SKIPPED")
-            return
-
-        for robot in game.team_robots:
-            #robot_simple_logic(robot, game)
-            new_robot_logic(robot, game)
-    except Exception as e:
-        print(e, e.with_traceback)
-        pass
-
 def game_tick(capture, game):
     for robot in game.team_robots:
         try:
@@ -323,7 +195,7 @@ def game_tick(capture, game):
 
             robot_simple_logic(robot, game)
         except Exception as e:
-            #print(robot.idx, e, e.with_traceback)
+            print(robot.idx, e, e.with_traceback)
             pass
 
 def main():
@@ -341,18 +213,18 @@ def main():
     #r8 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 8)
     #r9 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 9)
 
-    r8 = Robot(sock, "192.168.1.61", 3000, "RC-1140 Fixer", 9)
-    r9 = Robot(sock, "192.168.1.62", 3000, "RC-1207 Sev", 8)
+    r9 = Robot(sock, "192.168.1.61", 3000, "RC-1140 Fixer", 9)
+    r8 = Robot(sock, "192.168.1.62", 3000, "RC-1207 Sev", 8)
 
     r8.target_core_type = -1
-    r9.target_core_type = 1
+    r9.target_core_type = -1
     
     game_A = Game([r8, r9], GOAL_RIGHT, GOAL_RIGHT_CORNER, GOAL_LEFT, GOAL_LEFT_CORNER)
     game_B = Game([r8, r9], GOAL_LEFT, GOAL_LEFT_CORNER, GOAL_RIGHT, GOAL_RIGHT_CORNER)
 
 
     while True:
-        game_tick(capture, game_A)
+        game_tick(capture, game_B)
 
 if __name__ == '__main__':
     main()

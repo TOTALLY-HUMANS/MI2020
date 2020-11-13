@@ -26,6 +26,7 @@ class Robot:
         self.goal = Point(500,500)
         self.unstuck_counter = -1
         self.unstuck_cooldown = -1000
+        self.none_counter = 25
 
     def forward(self, speed_percentage):
         self._send_move(MAX_SPEED * speed_percentage, MAX_SPEED * speed_percentage)
@@ -62,13 +63,13 @@ class Robot:
         self.position = Point(r_pos['position'][0], r_pos['position'][1])
         self.angle = r_pos['rotation']
 
-    def drive_to_point(self, target, speed_percent):
+    def drive_to_point(self, target, speed_percent, turn_multiplier):
         speed = np.clip(speed_percent, 0.0, 1.0)
         angle = self.get_angle_to_point(target, self.position, self.angle)
         if angle > 1.:
-            self.tight_left(speed * 0.70)
+            self.tight_left(speed * turn_multiplier)
         elif angle < -1.:
-            self.tight_right(speed * 0.70)
+            self.tight_right(speed * turn_multiplier)
         elif angle > 0.35:
             self.left(speed)
         elif angle < -0.35:
