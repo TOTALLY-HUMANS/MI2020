@@ -30,6 +30,7 @@ ROBO_SPEED = 0.3
 
 def reset(sock):
     sock.sendto(bytes("reset", "utf-8"), (IP, CONFIG_PORT))
+    
 
 def select_core_logic(game, robot, ball_coords):
     target_pos = robot.position
@@ -56,8 +57,8 @@ def select_core_logic(game, robot, ball_coords):
 
 
 def unstuck_logic(robot, game):
-    if (game.tick - robot.prev_tick) > 15:
-        robot.prev_tick = game.tick
+    if (game.tick - robot.prev_unstuck_tick) > 15:
+        robot.prev_unstuck_tick = game.tick
         if robot.unstuck_counter < 0 and robot.position.distance(robot.prev_pos) < 10 and robot.unstuck_cooldown <= game.tick:
             robot.unstuck_counter = 2
             robot.unstuck_cooldown = game.tick + 10
@@ -95,7 +96,7 @@ def robot_simple_logic(robot, game):
         robot.goal = game.goal_own.centroid
 
 
-    if target_ball == None:
+    if target_ball == None and game.tick > 15:
         robot.target_core_type = -1*robot.target_core_type
         return
 
@@ -117,13 +118,12 @@ def robot_simple_logic(robot, game):
         return
 
     if dist_to_ball < 100:
-        robot.drive_to_point_smooth(robot.goal, ROBO_SPEED)
+        robot.drive_to_point(robot.goal, ROBO_SPEED)
     
-    elif dist_to_ball < 150:
-        robot.drive_to_point(target_ball, ROBO_SPEED*0.7)
-
-    else:
+    elif dist_to_ball < 180:
         robot.drive_to_point(target_ball, ROBO_SPEED)
+    else:
+        goto_approach_state(robot, game)
 
 def idle_state(robot, game):
     robot.stop()
@@ -141,6 +141,8 @@ def goto_approach_state(robot, game):
     #set controls etc to correspond to this state
     #drive to approach point of current goal ball
 
+    #print("approach")
+
     if (game.tick - robot.prev_tick) > 10 or robot.prev_state == 0:
         robot.prev_tick = game.tick
         if robot.target_core_type == -1:
@@ -149,7 +151,7 @@ def goto_approach_state(robot, game):
             target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.pos_core_positions))
 
         robot.target_core = target_ball # target_ball #side_behind_point[1]
-        #print("selected: ", target_ball, " dist2selected: ", dist_to_ball)
+        print("selected: ", target_ball, " dist2selected: ", dist_to_ball)
 
     if robot.target_core_type == 1:
         _, sides, end = points_side_behind(game.goal_own.centroid, robot.target_core, dists=[150,150,150])
@@ -339,7 +341,7 @@ def main():
     game_2 = Game([r3, r4], GOAL_RIGHT, GOAL_LEFT)
 
     while True:
-        game_tick_new(capture, game_1)
+        #game_tick_new(capture, game_1)
         game_tick(capture, game_2)
 
         #time.sleep(0.05)

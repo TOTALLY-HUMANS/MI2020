@@ -30,10 +30,10 @@ class Game:
             robot.update(robot_frame_data)
 
         core_positions = get_core_positions(capture)
-
         #print(core_positions)
         self.neg_core_positions = array_coords_to_points(core_positions[0])
         self.pos_core_positions = array_coords_to_points(core_positions[1])
+
         #self.pos_core_positions = []
         self.tick += 1
 
