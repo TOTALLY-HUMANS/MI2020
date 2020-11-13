@@ -10,6 +10,8 @@ from shapely.geometry.polygon import Polygon
 
 #GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
 #GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
+GOAL_RIGHT_CORNER = Point(0, 0)
+GOAL_LEFT_CORNER = Point(1080, 1080)
 
 GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
 GOAL_RIGHT_CORNER = Point(1080, 0)
@@ -353,8 +355,8 @@ def main():
     r2.target_core_type = -1
     r1.target_core_type = 1
 
-    game_1 = Game([r1, r2], GOAL_LEFT, GOAL_LEFT_CORNER, GOAL_RIGHT, GOAL_RIGHT_CORNER)
-    game_2 = Game([r3], GOAL_RIGHT, GOAL_RIGHT_CORNER, GOAL_LEFT, GOAL_LEFT_CORNER)
+    #game_1 = Game([r1, r2], GOAL_LEFT, GOAL_LEFT_CORNER, GOAL_RIGHT, GOAL_RIGHT_CORNER)
+    game_2 = Game([r3, r4], GOAL_RIGHT, GOAL_RIGHT_CORNER, GOAL_LEFT, GOAL_LEFT_CORNER)
 
     while True:
         #game_tick_new(capture, game_1)
