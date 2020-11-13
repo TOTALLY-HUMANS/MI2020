@@ -7,7 +7,7 @@ from game import Game
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
-ROBO_SPEED = 0.75
+ROBO_SPEED = 0.5
 #ROBO_SPEED = 0.3
 
 GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
@@ -62,10 +62,7 @@ def select_core_logic(game, robot, ball_coords):
     if closest_ball_point is None:
         closest_ball_point = ball_coords[0]
         closest_dist = ball_coords[0].distance(target_pos)
-        
-    dist_scaled = -(closest_dist / 1080.)
-    angle_scaled = -closest_angle / 3.14
-    print(2 * dist_scaled, angle_scaled)
+    
 
     return closest_ball_point, closest_dist
 
@@ -169,7 +166,7 @@ def goto_approach_state(robot, game):
             target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.pos_core_positions))
 
         robot.target_core = target_ball # target_ball #side_behind_point[1]
-        print("selected: ", target_ball, " dist2selected: ", dist_to_ball)
+        #print("selected: ", target_ball, " dist2selected: ", dist_to_ball)
 
     if robot.target_core_type == 1:
         _, sides, end = points_side_behind(game.goal_own.centroid, robot.target_core, dists=[150,150,150])
@@ -252,7 +249,7 @@ def ram_goal_state(robot, game):
 
 
 def jammed(robot, game):
-    print("jammed state")
+    #print("jammed state")
     #do something
     robot.tight_right(ROBO_SPEED)
 
@@ -318,14 +315,15 @@ def game_tick(capture, game):
     for robot in game.team_robots:
         try:
             game.update(capture)
+            print(len(game.neg_core_positions), len(game.pos_core_positions))
 
             if len(game.get_cores_not_in_goal(game.neg_core_positions)) <= 0 and len(game.get_cores_not_in_goal(game.pos_core_positions)) <= 0:
-                print("SKIPPED")
+                #print("SKIPPED")
                 return
 
             robot_simple_logic(robot, game)
         except Exception as e:
-            print(robot.idx, e, e.with_traceback)
+            #print(robot.idx, e, e.with_traceback)
             pass
 
 def main():
@@ -343,8 +341,8 @@ def main():
     #r8 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 8)
     #r9 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 9)
 
-    r8 = Robot(sock, "192.168.1.1", 3000, "RC-1140 Fixer", 8)
-    r9 = Robot(sock, "192.168.1.1", 3000, "RC-1207 Sev", 9)
+    r8 = Robot(sock, "192.168.1.61", 3000, "RC-1140 Fixer", 8)
+    r9 = Robot(sock, "192.168.1.62", 3000, "RC-1207 Sev", 9)
 
     r8.target_core_type = -1
     r9.target_core_type = 1
