@@ -7,7 +7,7 @@ from game import Game
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
-ROBO_SPEED = 0.5
+ROBO_SPEED = 0.6
 #ROBO_SPEED = 0.3
 
 GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
@@ -15,10 +15,10 @@ GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
 GOAL_RIGHT_CORNER = Point(0, 0)
 GOAL_LEFT_CORNER = Point(1080, 1080)
 
-#GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
-#GOAL_RIGHT_CORNER = Point(1080, 0)
-#GOAL_LEFT = Polygon([(0, 1080), (0, 800), (280, 1080)])
-#GOAL_LEFT_CORNER = Point(0, 1080)
+GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
+GOAL_RIGHT_CORNER = Point(1080, 0)
+GOAL_LEFT = Polygon([(0, 1080), (0, 800), (280, 1080)])
+GOAL_LEFT_CORNER = Point(0, 1080)
 
 VIDEO_FEED = "rtp://224.1.1.1:5200"
 #VIDEO_FEED = "http://localhost:8080"
@@ -76,7 +76,7 @@ def unstuck_logic(robot, game):
         robot.prev_unstuck_tick = game.tick
         if robot.unstuck_counter < 0 and robot.position.distance(robot.prev_pos) < 10 and robot.unstuck_cooldown <= game.tick:
             robot.unstuck_counter = 2
-            robot.unstuck_cooldown = game.tick + 10
+            robot.unstuck_cooldown = game.tick + 20
 
     if robot.unstuck_counter >= 0:
         print("trying to unstuck")
@@ -119,6 +119,7 @@ def robot_simple_logic(robot, game):
     #target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
     robot.target_core = target_ball
 
+    print(robot.target_core, robot.target_core_type)
 
 
     is_stuck = unstuck_logic(robot, game)
@@ -132,11 +133,11 @@ def robot_simple_logic(robot, game):
         robot.drive_to_point(game.goal_own.centroid, ROBO_SPEED)
         return
 
-    if dist_to_ball < 100:
+    if dist_to_ball < 80:
         robot.drive_to_point(robot.goal, ROBO_SPEED)
     
-    elif dist_to_ball < 180:
-        robot.drive_to_point(target_ball, ROBO_SPEED)
+    elif dist_to_ball < 170:
+        robot.drive_to_point(target_ball, ROBO_SPEED * 0.75)
     else:
         goto_approach_state(robot, game)
 
@@ -315,10 +316,9 @@ def game_tick(capture, game):
     for robot in game.team_robots:
         try:
             game.update(capture)
-            print(len(game.neg_core_positions), len(game.pos_core_positions))
 
             if len(game.get_cores_not_in_goal(game.neg_core_positions)) <= 0 and len(game.get_cores_not_in_goal(game.pos_core_positions)) <= 0:
-                #print("SKIPPED")
+                print("SKIPPED")
                 return
 
             robot_simple_logic(robot, game)
@@ -341,8 +341,8 @@ def main():
     #r8 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 8)
     #r9 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 9)
 
-    r8 = Robot(sock, "192.168.1.61", 3000, "RC-1140 Fixer", 8)
-    r9 = Robot(sock, "192.168.1.62", 3000, "RC-1207 Sev", 9)
+    r8 = Robot(sock, "192.168.1.61", 3000, "RC-1140 Fixer", 9)
+    r9 = Robot(sock, "192.168.1.62", 3000, "RC-1207 Sev", 8)
 
     r8.target_core_type = -1
     r9.target_core_type = 1

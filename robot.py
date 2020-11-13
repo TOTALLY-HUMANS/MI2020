@@ -3,6 +3,8 @@ import numpy as np
 import math
 
 MAX_SPEED = 100
+MAX_SPEED_TURN = 90
+
 
 class Robot:
     def __init__(self, sock, ip, port, name, idx):
@@ -37,16 +39,16 @@ class Robot:
                         MAX_SPEED * speed_percentage)
 
     def tight_left(self, speed_percentage):
-        self._send_move(-MAX_SPEED * speed_percentage,
-                        MAX_SPEED * speed_percentage)
+        self._send_move(-MAX_SPEED_TURN * speed_percentage,
+                        MAX_SPEED_TURN * speed_percentage)
 
     def right(self, speed_percentage):
         self._send_move(MAX_SPEED * speed_percentage, -
                         MAX_SPEED * 0.5 * speed_percentage)
 
     def tight_right(self, speed_percentage):
-        self._send_move(MAX_SPEED * speed_percentage, -
-                        MAX_SPEED * speed_percentage)
+        self._send_move(MAX_SPEED_TURN * speed_percentage, -
+                        MAX_SPEED_TURN * speed_percentage)
 
     def stop(self):
         self._send_move(0, 0)

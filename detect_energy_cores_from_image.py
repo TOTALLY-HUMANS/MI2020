@@ -14,10 +14,10 @@ VIDEO_SOURCE = "ffmpeg"  # Options: 'gstreamer', 'webcam' or 'opencv'
 # https://docs.opencv.org/3.4/da/d97/tutorial_threshold_inRange.html
 # https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_colorspaces/py_colorspaces.html
 # https://en.wikipedia.org/wiki/HSL_and_HSV
-POS_ECORE_LOW_COLOR = np.array([120, 80, 100], dtype=np.float32)
-POS_ECORE_HIGH_COLOR = np.array([175, 255, 255], dtype=np.float32)
-NEG_ECORE_LOW_COLOR = np.array([25, 80, 100], dtype=np.float32)
-NEG_ECORE_HIGH_COLOR = np.array([40, 255, 255], dtype=np.float32)
+POS_ECORE_LOW_COLOR = np.array([20, 80, 80], dtype=np.float32)
+POS_ECORE_HIGH_COLOR = np.array([60, 255, 255], dtype=np.float32)
+NEG_ECORE_LOW_COLOR = np.array([150, 80, 80], dtype=np.float32)
+NEG_ECORE_HIGH_COLOR = np.array([179, 255, 255], dtype=np.float32)
 
 
 def print_core_positions(pos_ecore_positions, neg_ecore_positions):
