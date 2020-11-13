@@ -7,20 +7,21 @@ from game import Game
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
+ROBO_SPEED = 0.75
+#ROBO_SPEED = 0.3
 
-#GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
-#GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
+GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
+GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
 GOAL_RIGHT_CORNER = Point(0, 0)
 GOAL_LEFT_CORNER = Point(1080, 1080)
 
-GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
-GOAL_RIGHT_CORNER = Point(1080, 0)
-GOAL_LEFT = Polygon([(0, 1080), (0, 800), (280, 1080)])
-GOAL_LEFT_CORNER = Point(0, 1080)
-GAME_AREA = Polygon([(0,0), (0, 1080), (1080, 0), (1080, 1080)])
+#GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
+#GOAL_RIGHT_CORNER = Point(1080, 0)
+#GOAL_LEFT = Polygon([(0, 1080), (0, 800), (280, 1080)])
+#GOAL_LEFT_CORNER = Point(0, 1080)
 
-#VIDEO_FEED = "rtp://224.1.1.1:5200"
-VIDEO_FEED = "http://localhost:8080"
+VIDEO_FEED = "rtp://224.1.1.1:5200"
+#VIDEO_FEED = "http://localhost:8080"
 
 IP = "127.0.0.1"
 CONFIG_PORT = 3000
@@ -29,8 +30,7 @@ ROBOT_PORT_2 = 3002
 ROBOT_PORT_3 = 3003
 ROBOT_PORT_4 = 3004
 
-#ROBO_SPEED = 0.75
-ROBO_SPEED = 0.3
+GAME_AREA = Polygon([(0,0), (0, 1080), (1080, 0), (1080, 1080)])
 
 def reset(sock):
     sock.sendto(bytes("reset", "utf-8"), (IP, CONFIG_PORT))
@@ -315,19 +315,18 @@ def game_tick_new(capture, game):
         pass
 
 def game_tick(capture, game):
-    try:
-        game.update(capture)
+    for robot in game.team_robots:
+        try:
+            game.update(capture)
 
-        if len(game.get_cores_not_in_goal(game.neg_core_positions)) <= 0 and len(game.get_cores_not_in_goal(game.pos_core_positions)) <= 0:
-            print("SKIPPED")
-            return
+            if len(game.get_cores_not_in_goal(game.neg_core_positions)) <= 0 and len(game.get_cores_not_in_goal(game.pos_core_positions)) <= 0:
+                print("SKIPPED")
+                return
 
-        for robot in game.team_robots:
-                robot_simple_logic(robot, game)
-                #new_robot_logic(robot, game)
-    except Exception as e:
-        print(e, e.with_traceback)
-        pass
+            robot_simple_logic(robot, game)
+        except Exception as e:
+            print(robot.idx, e, e.with_traceback)
+            pass
 
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -340,29 +339,22 @@ def main():
 
     print(width, height)
 
-    # Opponent robots
-    r1 = Robot(sock, IP, ROBOT_PORT_1, "RC-1138 Boss", 2)
-    r2 = Robot(sock, IP, ROBOT_PORT_2, "RC-1262 Scorch", 3)
-
     # Our robots
-    r3 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 8)
-    r4 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 9)
+    #r8 = Robot(sock, IP, ROBOT_PORT_3, "RC-1140 Fixer", 8)
+    #r9 = Robot(sock, IP, ROBOT_PORT_4, "RC-1207 Sev", 9)
 
-    r3.target_core_type = -1
-    r4.target_core_type = 1
+    r8 = Robot(sock, "192.168.1.1", 3000, "RC-1140 Fixer", 8)
+    r9 = Robot(sock, "192.168.1.1", 3000, "RC-1207 Sev", 9)
 
+    r8.target_core_type = -1
+    r9.target_core_type = 1
+    
+    game_A = Game([r8, r9], GOAL_RIGHT, GOAL_RIGHT_CORNER, GOAL_LEFT, GOAL_LEFT_CORNER)
+    game_B = Game([r8, r9], GOAL_LEFT, GOAL_LEFT_CORNER, GOAL_RIGHT, GOAL_RIGHT_CORNER)
 
-    r2.target_core_type = -1
-    r1.target_core_type = 1
-
-    #game_1 = Game([r1, r2], GOAL_LEFT, GOAL_LEFT_CORNER, GOAL_RIGHT, GOAL_RIGHT_CORNER)
-    game_2 = Game([r3, r4], GOAL_RIGHT, GOAL_RIGHT_CORNER, GOAL_LEFT, GOAL_LEFT_CORNER)
 
     while True:
-        #game_tick_new(capture, game_1)
-        game_tick(capture, game_2)
-
-        #time.sleep(0.05)
+        game_tick(capture, game_A)
 
 if __name__ == '__main__':
     main()
