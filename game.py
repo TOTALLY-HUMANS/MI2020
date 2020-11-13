@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 
 
 class Game:
-    def __init__(self, robots, goal_own, goal_opponent):
+    def __init__(self, robots, goal_own, goal_own_corner, goal_opponent, goal_opponent_corner):
         self.neg_core_positions = []
         self.pos_core_positions = []
         #self.balls = Balls()
@@ -18,7 +18,9 @@ class Game:
         self.team_robots = robots
 
         self.goal_own = goal_own
+        self.goal_own_corner = goal_own_corner
         self.goal_opponent = goal_opponent
+        self.goal_opponent_corner = goal_opponent_corner
 
         self.tick = 0
 

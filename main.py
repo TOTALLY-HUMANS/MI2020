@@ -12,7 +12,9 @@ from shapely.geometry.polygon import Polygon
 #GOAL_LEFT = Polygon([(1080, 1080), (1080, 800), (800, 1080)])
 
 GOAL_RIGHT = Polygon([(1080, 0), (800, 0), (1080, 280)])
+GOAL_RIGHT_CORNER = Point(1080, 0)
 GOAL_LEFT = Polygon([(0, 1080), (0, 800), (280, 1080)])
+GOAL_LEFT_CORNER = Point(0, 1080)
 GAME_AREA = Polygon([(0,0), (0, 1080), (1080, 0), (1080, 1080)])
 
 #VIDEO_FEED = "rtp://224.1.1.1:5200"
@@ -89,11 +91,11 @@ def robot_simple_logic(robot, game):
 
     if robot.target_core_type == -1:
         target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
-        robot.goal = game.goal_opponent.centroid
+        robot.goal = game.goal_opponent_corner
 
     elif robot.target_core_type == 1:
         target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.pos_core_positions))
-        robot.goal = game.goal_own.centroid
+        robot.goal = game.goal_own_corner
 
 
     if target_ball == None and game.tick > 15:
@@ -337,8 +339,8 @@ def main():
     r2.target_core_type = -1
     r1.target_core_type = 1
 
-    game_1 = Game([r1, r2], GOAL_LEFT, GOAL_RIGHT)
-    game_2 = Game([r3, r4], GOAL_RIGHT, GOAL_LEFT)
+    game_1 = Game([r1, r2], GOAL_LEFT, GOAL_LEFT_CORNER, GOAL_RIGHT, GOAL_RIGHT_CORNER)
+    game_2 = Game([r3, r4], GOAL_RIGHT, GOAL_RIGHT_CORNER, GOAL_LEFT, GOAL_LEFT_CORNER)
 
     while True:
         #game_tick_new(capture, game_1)
