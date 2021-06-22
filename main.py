@@ -7,7 +7,7 @@ from game import Game
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
 
-ROBO_SPEED = 0.45
+ROBO_SPEED = 0.55
 #ROBO_SPEED = 0.3
 
 #GOAL_RIGHT = Polygon([(0, 0), (280, 0), (0, 280)])
@@ -52,7 +52,7 @@ def select_core_logic(game, robot, ball_coords):
     for point in ball_coords:
         dist = point.distance(target_pos)
         angle = abs(robot.get_angle_to_point(point, robot.position, robot.angle))
-        score = closest_ball_objective_funciton(dist, angle)
+        score = closest_ball_objective_funciton(dist, angle, robot.position.distance(robot.goal.centroid))
         if score > best_score and point not in targeted:
             best_score = score
             closest_angle = angle
@@ -66,13 +66,14 @@ def select_core_logic(game, robot, ball_coords):
 
     return closest_ball_point, closest_dist
 
-def closest_ball_objective_funciton(dist, angle):
+def closest_ball_objective_funciton(dist, angle, dist_to_goal):
     dist_scaled = -(dist / 1080.)
+    dist_to_goal_scaled = -(dist_to_goal / 1080.)
     angle_scaled = -angle / 3.14
-    return 4 * dist_scaled + angle_scaled
+    return 2 * dist_scaled + angle_scaled
 
 def unstuck_logic(robot, game):
-    if (game.tick - robot.prev_unstuck_tick) > 25:
+    if (game.tick - robot.prev_unstuck_tick) > 35 and game.tick > 50:
         robot.prev_unstuck_tick = game.tick
         if robot.unstuck_counter < 0 and robot.position.distance(robot.prev_pos) < 10 and robot.unstuck_cooldown <= game.tick:
             robot.unstuck_counter = 3
@@ -80,7 +81,7 @@ def unstuck_logic(robot, game):
 
     if robot.unstuck_counter >= 0:
         print("trying to unstuck")
-        robot.jam_turn(robot.goal, 0.7)
+        robot.jam_turn(robot.goal, 1.0)
         robot.unstuck_counter -= 1
         return True
 
@@ -92,12 +93,12 @@ def robot_simple_logic(robot, game):
     target_ball = None
 
     if robot.target_core_type == -1:
-        target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
         robot.goal = game.goal_opponent_corner
+        target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.neg_core_positions))
 
     elif robot.target_core_type == 1:
-        target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.pos_core_positions))
         robot.goal = game.goal_own_corner
+        target_ball, dist_to_ball = select_core_logic(game, robot, game.get_cores_not_in_goal(game.pos_core_positions))
     
     # ENABLE?
     #robot.target_core = target_ball
@@ -119,17 +120,19 @@ def robot_simple_logic(robot, game):
         return
 
     if game.goal_own.distance(robot.position) < 40:
-        robot.drive_to_point(game.goal_opponent.centroid, ROBO_SPEED, 0.7)
+        robot.drive_to_point(game.goal_opponent.centroid, ROBO_SPEED, 0.65)
         return
     if game.goal_opponent.distance(robot.position) < 40:
-        robot.drive_to_point(game.goal_own.centroid, ROBO_SPEED, 0.7)
+        robot.drive_to_point(game.goal_own.centroid, ROBO_SPEED, 0.65)
         return
 
     if dist_to_ball < 80:
+        print("to goal")
         robot.drive_to_point_smooth(robot.goal, ROBO_SPEED)
     
     elif dist_to_ball < 250:
-        robot.drive_to_point(target_ball, ROBO_SPEED * 0.75, 0.6)
+        print("approach ball")
+        robot.drive_to_point(target_ball, ROBO_SPEED * 0.75, 0.75)
     else:
         goto_approach_state(robot, game)
 
@@ -137,7 +140,7 @@ def goto_approach_state(robot, game):
     #set controls etc to correspond to this state
     #drive to approach point of current goal ball
 
-    #print("approach")
+    print("approach long")
 
     if (game.tick - robot.prev_tick) > 10 or robot.target_core == None:
         robot.prev_tick = game.tick
@@ -159,7 +162,7 @@ def goto_approach_state(robot, game):
     if len(sides) > 0:
         target = sides[0]
         
-    robot.drive_to_point(target, ROBO_SPEED, 0.7)
+    robot.drive_to_point(target, ROBO_SPEED, 0.65)
 
     
 #computes unit vector between start&end
@@ -216,7 +219,7 @@ def main():
     r9 = Robot(sock, "192.168.1.61", 3000, "RC-1140 Fixer", 9)
     r8 = Robot(sock, "192.168.1.62", 3000, "RC-1207 Sev", 8)
 
-    r8.target_core_type = -1
+    r8.target_core_type = 1
     r9.target_core_type = -1
     
     game_A = Game([r8, r9], GOAL_RIGHT, GOAL_RIGHT_CORNER, GOAL_LEFT, GOAL_LEFT_CORNER)
